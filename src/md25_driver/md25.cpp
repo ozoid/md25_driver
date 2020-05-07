@@ -58,7 +58,7 @@ void md25_driver::clear_buffer()
 
 bool md25_driver::read_encoders()
 {
-  /* enoder 1 is stored in registers 2 - 5 */
+  /* encoder 1 is stored in registers 2 - 5 */
   m_buff[0] = 0x2;
 
   if (write(m_fd, m_buff, 1) != 1) {
@@ -107,4 +107,131 @@ void md25_driver::stop_motors()
   }
 
   ROS_INFO("motors stopped");
+}
+//----------------------------------------------
+
+long md25_driver::getSoftwareVersion()
+{
+   return readRegisterByte(softwareVerReg);
+}
+
+float md25_driver::getBatteryVolts()
+{
+     return readRegisterByte(voltReg)/10.0;
+}
+
+byte md25_driver::getAccelerationRate()
+{
+   return readRegisterByte(accRateReg);
+}
+
+byte md25_driver::getMotor1Speed()
+{
+   return readRegisterByte(speed1Reg);
+}
+
+byte md25_driver::getMotor2Speed()
+{
+   return readRegisterByte(speed2Reg);
+}
+
+byte md25_driver::getMotor1Current()
+{
+   return readRegisterByte(current1Reg);
+}
+
+byte md25_driver::getMotor2Current()
+{
+   return readRegisterByte(current2Reg);
+}
+
+byte md25_driver::getMode()
+{
+   return readRegisterByte(modeReg);
+}
+
+void md25_driver::resetEncoders()
+{
+   sendCommand(0x20,cmdReg);
+}
+
+void md25_driver::enableSpeedRegulation()
+{
+   sendCommand(0x31,cmdReg);
+}
+
+void md25_driver::disableSpeedRegulation()
+{
+   sendCommand(0x30,cmdReg);
+}
+
+void md25_driver::enableTimeout()
+{
+   sendCommand(0x33,cmdReg);
+}
+
+void md25_driver::disableTimeout()
+{
+   sendCommand(0x32,cmdReg);
+}
+
+void md25_driver::setMotorsSpeed(byte speed)
+{
+   setMotor1Speed(speed);
+   setMotor2Speed(speed);
+}
+
+void md25_driver::setMotor1Speed(byte speed)
+{
+   setMotorSpeed(speed1Reg, speed);
+}
+
+void md25_driver::setMotor2Speed(byte speed)
+{
+   setMotorSpeed(speed2Reg, speed);
+}
+
+void md25_driver::stopMotor1()
+{
+   setMotor1Speed(stopSpeed);
+}
+
+void md25_driver::stopMotor2()
+{
+   setMotor2Speed(stopSpeed);
+}
+
+void md25_driver::stopMotors()
+{
+   stopMotor1();
+   stopMotor2();
+}
+void md_25_driver::setMode(byte mode)
+{
+   sendWireCommand(mode,modeReg);
+}
+void md25_driver::setAccelerationRate(byte rate)
+{
+   sendCommand(rate,accRateReg);
+}
+
+byte md25_driver::readRegisterByte(byte reg){
+  m_buff[0] = reg;
+  if (write(m_fd, m_buff, 1) != 1) {
+    ROS_ERROR("Could not write to i2c");
+    return false;
+  } else if (read(m_fd, m_buff, 8) != 8) {
+    ROS_ERROR("Could not read register value");
+    return false;
+  }
+  return m_buff[0];
+}
+void md25_driver::sendCommand(byte command,int reg){
+  m_buff[0] = reg;
+  m_buff[1] = command;
+
+  if (write(m_fd, m_buff, 2) != 2) {
+    ROS_ERROR("failed to send command!");
+    return;  
+  }
 }
