@@ -117,7 +117,7 @@ long md25_driver::getSoftwareVersion()
 
 float md25_driver::getBatteryVolts()
 {
-     return readRegisterByte(voltReg)/10.0;
+   return readRegisterByte(voltReg)/10.0;
 }
 
 byte md25_driver::getAccelerationRate()
@@ -208,7 +208,7 @@ void md25_driver::stopMotors()
 }
 void md_25_driver::setMode(byte mode)
 {
-   sendWireCommand(mode,modeReg);
+   sendCommand(mode,modeReg);
 }
 void md25_driver::setAccelerationRate(byte rate)
 {
