@@ -42,10 +42,8 @@ public:
 
   bool setup();
   std::pair<long, long> get_encoders();
-    
+  //--------------------  
   void resetEncoders();
-  int getEncoder1();
-  int getEncoder2();
   void setMotorsSpeed(byte speed);
   void setMotor1Speed(byte speed);
   void setMotor2Speed(byte speed);
@@ -67,7 +65,7 @@ public:
   void disableTimeout();
   void setMode(byte mode);
   void setAccelerationRate(byte rate);
-  
+  //-------------
   private:
   bool read_encoders();
   bool reset_encoders();
@@ -96,7 +94,13 @@ public:
   static byte const accRateReg	= 0x0E;  // acceleration rate
   static byte const modeReg		= 0x0F;  // mode of operation
   static byte const stopSpeed		= 0x80;  // 0 velocity
-
+  
+  static byte const resetEncoders = 0x20; // 
+  static byte const enableSpeedReg = 0x31; //
+  static byte const disableSpeedReg = 0x30; //
+  static byte const enableTimeout = 0x33; //
+  static byte const disableTimeout = 0x32; //  
+  
 };
 
 #endif
