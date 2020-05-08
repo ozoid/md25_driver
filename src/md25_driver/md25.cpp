@@ -40,7 +40,7 @@ bool md25_driver::setup()
 
 bool md25_driver::reset_encoders()
 {
-  bool result = sendCommand(resetEncoders,cmdReg);
+  bool result = sendCommand(encodersReset,cmdReg);
   if (!result) {
     ROS_ERROR("could not reset encoders");
     return false;
@@ -157,7 +157,7 @@ uint8_t md25_driver::getMode()
 
 void md25_driver::resetEncoders()
 {
-   sendCommand(resetEncoders,cmdReg);
+   sendCommand(encodersReset,cmdReg);
 }
 
 void md25_driver::enableSpeedRegulation()
@@ -172,12 +172,12 @@ void md25_driver::disableSpeedRegulation()
 
 void md25_driver::enableTimeout()
 {
-   sendCommand(enableTimeout,cmdReg);
+   sendCommand(timeoutEnable,cmdReg);
 }
 
 void md25_driver::disableTimeout()
 {
-   sendCommand(disableTimeout,cmdReg);
+   sendCommand(timeoutDisable,cmdReg);
 }
 
 void md25_driver::setMotorsSpeed(uint8_t speed)
@@ -211,11 +211,11 @@ void md25_driver::stopMotors()
    stopMotor1();
    stopMotor2();
 }
-void md_25_driver::setMode(uint8_t mode)
+void md25_driver::setMode(uint8_t mode)
 {
    sendCommand(mode,modeReg);
 }
-void md25_driver::setAccelerationRate(bytuint8_te rate)
+void md25_driver::setAccelerationRate(uint8_t rate)
 {
    sendCommand(rate,accRateReg);
 }
@@ -249,7 +249,7 @@ uint8_t md25_driver::readRegisterByte(uint8_t reg){
   return m_buff[0];
 }
 
-bool md25_driver::sendCommand(byte command,int reg){
+bool md25_driver::sendCommand(uint8_t command,int reg){
   m_buff[0] = reg;
   m_buff[1] = command;
   if (write(m_fd, m_buff, 2) != 2) {

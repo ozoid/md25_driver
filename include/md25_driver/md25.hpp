@@ -67,12 +67,18 @@ public:
   void disableTimeout();
   void setMode(uint8_t mode);
   void setAccelerationRate(uint8_t rate);
-  //-------------
-  private:
+  void setMotorSpeed(uint8_t motor, uint8_t speed);
+  void stop_motors();
   bool read_encoders();
   bool reset_encoders();
-  void stop_motors();
+  
   void clear_buffer();
+  int readEncoderArray(uint8_t reg);
+  uint8_t readRegisterByte(uint8_t reg);
+  bool sendCommand(uint8_t command,int reg);
+  //-------------
+  private:
+  
 
   int m_fd = -1;
   int address = 0x58;
@@ -97,11 +103,11 @@ public:
   static uint8_t const modeReg		= 0x0F;  // mode of operation
   static uint8_t const stopSpeed		= 0x80;  // 0 velocity
   
-  static uint8_t const resetEncoders = 0x20; // 
+  static uint8_t const encodersReset = 0x20; // 
   static uint8_t const enableSpeedReg = 0x31; //
   static uint8_t const disableSpeedReg = 0x30; //
-  static uint8_t const enableTimeout = 0x33; //
-  static uint8_t const disableTimeout = 0x32; //  
+  static uint8_t const timeoutEnable = 0x33; //
+  static uint8_t const timeoutDisable = 0x32; //  
   
 };
 

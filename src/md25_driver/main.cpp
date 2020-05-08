@@ -28,7 +28,12 @@ private:
   double publish_motor_status_frequency_;
   double publish_motor_encoders_frequency_;
 public:
+
  MD25MotorDriverROSWrapper(ros::NodeHandle *nh){
+    bool setup = motor->setup();
+    if(!setup){
+      ROS_ERROR("failed to setup motor driver!");
+    }
 
     int max_speed;
     if(!ros::param::get("~max_speed",max_speed)){
@@ -97,15 +102,15 @@ void publishMotorStatus(const ros::TimerEvent &event){
   //std::map<std::string,std::string>status = motor->getMotor1Current();
   std::vector<diagnostic_msgs::KeyValue>values;
   diagnostic_msgs::KeyValue value1;
-  value1.key = "M1"
+  value1.key = "M1";
   value1.value = motor->getMotor1Current();
   values.push_back(value1);
   diagnostic_msgs::KeyValue value2;
-  value2.key = "M2"
+  value2.key = "M2";
   value2.value = motor->getMotor2Current();
   values.push_back(value2);
   diagnostic_msgs::KeyValue value3;
-  value3.key = "B1"
+  value3.key = "B1";
   value3.value = motor->getBatteryVolts();
   values.push_back(value3);
   msg.values = values;
@@ -114,22 +119,16 @@ void publishMotorStatus(const ros::TimerEvent &event){
 //---------------------------------------
 void stop(){
     motor->stop_motors();
-  }
  }
+};
 //---------------------------------------
 int main(int argc,char **argv){
-  if (argc == 1) {
-    MD25MotorDriverROSWrapper::motor = std::make_unique<md25_driver>(argv[1]);
-  } else MD25MotorDriverROSWrapper::motor = std::make_unique<md25_driver>("/dev/i2c/1");
-  if (!motor->setup()) return 1; 
-
   ros::init(argc,argv,"motor_driver");
   ros::NodeHandle nh;
-  ros:AsyncSpinner spinner(4);
+  ros::AsyncSpinner spinner(4);
   spinner.start();
   MD25MotorDriverROSWrapper motor_wrapper(&nh);
   ROS_INFO("Motor Driver Started");
   ros::waitForShutdown();
   motor_wrapper.stop();
  }
-}
