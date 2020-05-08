@@ -119,8 +119,8 @@ void stop(){
 //---------------------------------------
 int main(int argc,char **argv){
   if (argc == 1) {
-    motor = std::make_unique<md25_driver>(argv[1]);
-  } else motor = std::make_unique<md25_driver>('/dev/i2c/1');
+    MD25MotorDriverROSWrapper::motor = std::make_unique<md25_driver>(argv[1]);
+  } else MD25MotorDriverROSWrapper::motor = std::make_unique<md25_driver>("/dev/i2c/1");
   if (!motor->setup()) return 1; 
 
   ros::init(argc,argv,"motor_driver");

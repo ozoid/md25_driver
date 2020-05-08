@@ -125,32 +125,32 @@ float md25_driver::getBatteryVolts()
    return readRegisterByte(voltReg)/10.0;
 }
 
-byte md25_driver::getAccelerationRate()
+uint8_t md25_driver::getAccelerationRate()
 {
    return readRegisterByte(accRateReg);
 }
 
-byte md25_driver::getMotor1Speed()
+uint8_t md25_driver::getMotor1Speed()
 {
    return readRegisterByte(speed1Reg);
 }
 
-byte md25_driver::getMotor2Speed()
+uint8_t md25_driver::getMotor2Speed()
 {
    return readRegisterByte(speed2Reg);
 }
 
-byte md25_driver::getMotor1Current()
+uint8_t md25_driver::getMotor1Current()
 {
    return readRegisterByte(current1Reg);
 }
 
-byte md25_driver::getMotor2Current()
+uint8_t md25_driver::getMotor2Current()
 {
    return readRegisterByte(current2Reg);
 }
 
-byte md25_driver::getMode()
+uint8_t md25_driver::getMode()
 {
    return readRegisterByte(modeReg);
 }
@@ -180,18 +180,18 @@ void md25_driver::disableTimeout()
    sendCommand(disableTimeout,cmdReg);
 }
 
-void md25_driver::setMotorsSpeed(byte speed)
+void md25_driver::setMotorsSpeed(uint8_t speed)
 {
    setMotor1Speed(speed);
    setMotor2Speed(speed);
 }
 
-void md25_driver::setMotor1Speed(byte speed)
+void md25_driver::setMotor1Speed(uint8_t speed)
 {
    setMotorSpeed(speed1Reg, speed);
 }
 
-void md25_driver::setMotor2Speed(byte speed)
+void md25_driver::setMotor2Speed(uint8_t speed)
 {
    setMotorSpeed(speed2Reg, speed);
 }
@@ -211,21 +211,20 @@ void md25_driver::stopMotors()
    stopMotor1();
    stopMotor2();
 }
-void md_25_driver::setMode(byte mode)
+void md_25_driver::setMode(uint8_t mode)
 {
    sendCommand(mode,modeReg);
 }
-void md25_driver::setAccelerationRate(byte rate)
+void md25_driver::setAccelerationRate(bytuint8_te rate)
 {
    sendCommand(rate,accRateReg);
 }
-void md25_driver::setMotorSpeed(byte motor, byte speed)
+void md25_driver::setMotorSpeed(uint8_t motor, uint8_t speed)
 {
    sendCommand(speed,motor);
 }
 
-
-int md25_driver::readEncoderArray(byte reg){
+int32_t md25_driver::readEncoderArray(uint8_t reg){
 m_buff[0] = reg;
   if (write(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("Could not write to i2c");
@@ -238,7 +237,7 @@ m_buff[0] = reg;
   return result;
 }
 
-byte md25_driver::readRegisterByte(byte reg){
+uint8_t md25_driver::readRegisterByte(uint8_t reg){
   m_buff[0] = reg;
   if (write(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("Could not write to i2c");

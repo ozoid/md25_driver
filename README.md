@@ -15,7 +15,7 @@ Subscriptions:
 
 Advertisements:
 * current_speed - std_msgs::ByteMultiArray[2] - left/right
-* motor_status - vector<diagnostic_msgs::KeyValue>[3] - current left/right, batteryvolts
+* motor_status - vector<diagnostic_msgs::KeyValue>[3] - motor current left/right, batteryvolts
 * motor_encoders - std_msgs::Int32MultiArray[2] - left/right
 
 Services:
