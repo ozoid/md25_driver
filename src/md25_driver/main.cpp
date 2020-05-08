@@ -1,9 +1,9 @@
-#include <ros/ros.h>
 #include <map>
 #include <string>
 #include <vector>
-#include <md25_driver/md25.hpp>
 #include <memory>
+#include <md25_driver/md25.hpp>
+#include <ros/ros.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/MultiArrayLayout.h>
 #include <std_msgs/Int32MultiArray.h>
@@ -29,7 +29,7 @@ private:
   double publish_motor_encoders_frequency_;
 public:
  MD25MotorDriverROSWrapper(ros::NodeHandle *nh){
-    motor.setup();
+
     int max_speed;
     if(!ros::param::get("~max_speed",max_speed)){
       max_speed = 120;
@@ -118,6 +118,11 @@ void stop(){
  }
 //---------------------------------------
 int main(int argc,char **argv){
+  if (argc == 1) {
+    motor = std::make_unique<md25_driver>(argv[1]);
+  } else motor = std::make_unique<md25_driver>('/dev/i2c/1');
+  if (!motor->setup()) return 1; 
+
   ros::init(argc,argv,"motor_driver");
   ros::NodeHandle nh;
   ros:AsyncSpinner spinner(4);
