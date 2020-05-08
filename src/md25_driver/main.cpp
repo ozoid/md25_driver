@@ -39,7 +39,7 @@ public:
       publish_current_speed_frequency_ = 5.0;
     }
     if(!ros::param::get("~publish_motor_status_frequency",publish_motor_status_frequency_)){
-      publish_motor_status_frequency_ = 1.0;
+      publish_motor_status_frequency_ = 5.0;
     }
     if(!ros::param::get("~publish_motor_encoders_frequency",publish_motor_encoders_frequency_)){
       publish_motor_encoders_frequency_ = 1.0;
@@ -62,7 +62,7 @@ void callbackSpeedCommand(const std_msgs::ByteMultiArray &msg){
       motor->setMotor2Speed(msg.data[1]);
   }
 //---------------------------------------
-void callbackReset(std_srvs::Trigger::Request &req, std_srvs::TriggerResponse &res){
+bool callbackReset(std_srvs::Trigger::Request &req, std_srvs::TriggerResponse &res){
     motor->resetEncoders();
     res.success = true;
     res.message = "Encoders Reset";
@@ -93,7 +93,7 @@ void publishEncoders(const ros::TimerEvent &event){
  }
 //---------------------------------------
 void publishMotorStatus(const ros::TimerEvent &event){
-  diagnotsig_msgs::DiagnosticStatus msg;
+  diagnostic_msgs::DiagnosticStatus msg;
   //std::map<std::string,std::string>status = motor->getMotor1Current();
   std::vector<diagnostic_msgs::KeyValue>values;
   diagnostic_msgs::KeyValue value1;
@@ -104,6 +104,10 @@ void publishMotorStatus(const ros::TimerEvent &event){
   value2.key = "M2"
   value2.value = motor->getMotor2Current();
   values.push_back(value2);
+  diagnostic_msgs::KeyValue value3;
+  value3.key = "B1"
+  value3.value = motor->getBatteryVolts();
+  values.push_back(value3);
   msg.values = values;
   motor_status_publisher_.publish(msg);
  }
