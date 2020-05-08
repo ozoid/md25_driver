@@ -44,6 +44,8 @@ public:
   std::pair<long, long> get_encoders();
   //--------------------  
   void resetEncoders();
+  int getEncoder1();
+  int getEncoder2();
   void setMotorsSpeed(byte speed);
   void setMotor1Speed(byte speed);
   void setMotor2Speed(byte speed);
