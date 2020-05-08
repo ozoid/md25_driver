@@ -15,7 +15,7 @@ bool md25_driver::setup()
    *
    * (hopefully it sticks around).
    */
-  m_buff[0] = 13;  /* get software version */
+  m_buff[0] = softwareVerReg;  /* get software version */
   if ((m_fd = open(m_i2c_file, O_RDWR)) < 0) {
     ROS_ERROR("Failed to open i2c file");
     return false;
@@ -40,8 +40,8 @@ bool md25_driver::setup()
 
 bool md25_driver::reset_encoders()
 {
-  m_buff[0] = 0x10;  /* command register */
-  m_buff[1] = 0x20;  /* command to zero out encoders */
+  m_buff[0] = cmdReg;  /* command register */
+  m_buff[1] = resetEncoders;  /* command to zero out encoders */
 
   if (write(m_fd, m_buff, 2) != 2) {
     ROS_ERROR("could not reset encoders");
@@ -59,7 +59,7 @@ void md25_driver::clear_buffer()
 bool md25_driver::read_encoders()
 {
   /* encoder 1 is stored in registers 2 - 5 */
-  m_buff[0] = 0x2;
+  m_buff[0] = encoderOneReg;
 
   if (write(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("Could not write to i2c");
@@ -90,7 +90,7 @@ std::pair<long, long> md25_driver::get_encoders()
 void md25_driver::stop_motors()
 {
   ROS_INFO("HALT received, stopping motors");
-  m_buff[0] = 0;
+  m_buff[0] = speed1Reg;
   m_buff[1] = 128;  /* this speed stops the motors */
 
   if (write(m_fd, m_buff, 2) != 2) {
@@ -98,7 +98,7 @@ void md25_driver::stop_motors()
     return;
   }
 
-  m_buff[0] = 1;
+  m_buff[0] = speed2Reg;
   m_buff[1] = 128;
 
   if (write(m_fd, m_buff, 2) != 2) {
@@ -152,27 +152,27 @@ byte md25_driver::getMode()
 
 void md25_driver::resetEncoders()
 {
-   sendCommand(0x20,cmdReg);
+   sendCommand(resetEncoders,cmdReg);
 }
 
 void md25_driver::enableSpeedRegulation()
 {
-   sendCommand(0x31,cmdReg);
+   sendCommand(enableSpeedReg,cmdReg);
 }
 
 void md25_driver::disableSpeedRegulation()
 {
-   sendCommand(0x30,cmdReg);
+   sendCommand(disableSpeedReg,cmdReg);
 }
 
 void md25_driver::enableTimeout()
 {
-   sendCommand(0x33,cmdReg);
+   sendCommand(enableTimeout,cmdReg);
 }
 
 void md25_driver::disableTimeout()
 {
-   sendCommand(0x32,cmdReg);
+   sendCommand(disableTimeout,cmdReg);
 }
 
 void md25_driver::setMotorsSpeed(byte speed)
@@ -213,6 +213,17 @@ void md_25_driver::setMode(byte mode)
 void md25_driver::setAccelerationRate(byte rate)
 {
    sendCommand(rate,accRateReg);
+}
+
+int md25_driver::readEncoderArray(byte(reg){
+m_buff[0] = reg;
+  if (write(m_fd, m_buff, 1) != 1) {
+    ROS_ERROR("Could not write to i2c");
+    return false;
+  } else if (read(m_fd, m_buff, 8) != 8) {
+    ROS_ERROR("Could not read register value");
+    return false;
+  }
 }
 
 byte md25_driver::readRegisterByte(byte reg){
