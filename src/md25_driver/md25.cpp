@@ -40,14 +40,11 @@ bool md25_driver::setup()
 
 bool md25_driver::reset_encoders()
 {
-  m_buff[0] = cmdReg;  /* command register */
-  m_buff[1] = resetEncoders;  /* command to zero out encoders */
-
-  if (write(m_fd, m_buff, 2) != 2) {
+  bool result = sendCommand(resetEncoders,cmdReg);
+  if (!result) {
     ROS_ERROR("could not reset encoders");
     return false;
   }
-
   return true;
 }
 
@@ -109,7 +106,15 @@ void md25_driver::stop_motors()
   ROS_INFO("motors stopped");
 }
 //----------------------------------------------
+int md25_driver::getEncoder1()
+{
+   return readEncoderArray(encoderOneReg);
+}
 
+int md25_driver::getEncoder2()
+{
+   return readEncoderArray(encoderTwoReg);
+}
 long md25_driver::getSoftwareVersion()
 {
    return readRegisterByte(softwareVerReg);
@@ -214,16 +219,23 @@ void md25_driver::setAccelerationRate(byte rate)
 {
    sendCommand(rate,accRateReg);
 }
+void md25_driver::setMotorSpeed(byte motor, byte speed)
+{
+   sendCommand(speed,motor);
+}
 
-int md25_driver::readEncoderArray(byte(reg){
+
+int md25_driver::readEncoderArray(byte reg){
 m_buff[0] = reg;
   if (write(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("Could not write to i2c");
     return false;
-  } else if (read(m_fd, m_buff, 8) != 8) {
+  } else if (read(m_fd, m_buff, 4) != 4) {
     ROS_ERROR("Could not read register value");
     return false;
   }
+  int result = (m_buff[0] << 24) + (m_buff[1] << 16) + (m_buff[2] << 8) + m_buff[3];
+  return result;
 }
 
 byte md25_driver::readRegisterByte(byte reg){
@@ -231,18 +243,19 @@ byte md25_driver::readRegisterByte(byte reg){
   if (write(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("Could not write to i2c");
     return false;
-  } else if (read(m_fd, m_buff, 8) != 8) {
+  } else if (read(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("Could not read register value");
     return false;
   }
   return m_buff[0];
 }
-void md25_driver::sendCommand(byte command,int reg){
+
+bool md25_driver::sendCommand(byte command,int reg){
   m_buff[0] = reg;
   m_buff[1] = command;
-
   if (write(m_fd, m_buff, 2) != 2) {
     ROS_ERROR("failed to send command!");
-    return;  
+    return false;  
   }
+  return true;
 }
