@@ -52,15 +52,15 @@ public:
     }
     //--------
     speed_command_subscriber_ = nh->subscribe("speed_command",10,&MD25MotorDriverROSWrapper::callbackSpeedCommand, this);
-    stop_motor_server_ = nh->advertiseService("stop_motor",&MD25MotorDriverROSWrapper::callbackStop, this);
-    reset_encoders_server_ = nh->advertiseService("reset_encoders",&MD25MotorDriverROSWrapper::callbackReset,this);
+    stop_motor_server_ = nh->advertiseService("md25_driver/stop_motor",&MD25MotorDriverROSWrapper::callbackStop, this);
+    reset_encoders_server_ = nh->advertiseService("md25_driver/reset_encoders",&MD25MotorDriverROSWrapper::callbackReset,this);
     current_speed_publisher_ = nh->advertise<std_msgs::ByteMultiArray>("current_speed",10);
     motor_status_publisher_ = nh->advertise<diagnostic_msgs::DiagnosticStatus>("motor_status",10);
     motor_encoders_publisher_ = nh->advertise<std_msgs::Int32MultiArray>("motor_encoders",10);
 
     current_speed_timer_ = nh->createTimer(ros::Duration(1.0 / publish_current_speed_frequency_),&MD25MotorDriverROSWrapper::publishCurrentSpeed,this);
-    motor_status_timer_ = nh->createTimer(ros::Duration(1.0/publish_current_speed_frequency_),&MD25MotorDriverROSWrapper::publishMotorStatus,this);
-    motor_encoders_timer_ = nh->createTimer(ros::Duration(1.0/publish_motor_encoders_frequency_),&MD25MotorDriverROSWrapper::publishEncoders,this);
+    motor_status_timer_ = nh->createTimer(ros::Duration(1.0 / publish_current_speed_frequency_),&MD25MotorDriverROSWrapper::publishMotorStatus,this);
+    motor_encoders_timer_ = nh->createTimer(ros::Duration(1.0 / publish_motor_encoders_frequency_),&MD25MotorDriverROSWrapper::publishEncoders,this);
   }
 //---------------------------------------
 void callbackSpeedCommand(const std_msgs::ByteMultiArray &msg){
@@ -129,7 +129,7 @@ int main(int argc,char **argv){
   ros::AsyncSpinner spinner(4);
   spinner.start();
   MD25MotorDriverROSWrapper motor_wrapper(&nh);
-  ROS_INFO("Motor Driver Started");
+  ROS_INFO("MD25 Motor Driver Started");
   ros::waitForShutdown();
   motor_wrapper.stop();
  }

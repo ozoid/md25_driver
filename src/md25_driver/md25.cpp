@@ -125,7 +125,7 @@ long md25_driver::getSoftwareVersion()
 
 float md25_driver::getBatteryVolts()
 {
-   return readRegisterByte(voltReg)/10.0;
+   return readRegisterByte(voltReg);
 }
 
 uint8_t md25_driver::getAccelerationRate()

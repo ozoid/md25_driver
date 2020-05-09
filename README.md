@@ -3,7 +3,8 @@ A ROS driver for the md25 motor controller
 
 Added functions to set speed etc. - ported from Arduino MD25 driver - Josh Villbrandt (http://javconcepts.com/), July 7, 2012.
 
-Wrapped MD25 ROS Driver - v0.2
+Wrapped MD25 ROS Driver - v0.3
+Requires read/write access to /dev/i2c-x - Ubuntu requires permission changes
 
 Parameters:
 * publish_current_speed_frequency = 5.0
@@ -19,6 +20,6 @@ Advertisements:
 * motor_encoders - std_msgs::Int32MultiArray[2] - left/right
 
 Services:
-* stop_motor - bool
-* reset_encoders - bool
+* md25_driver/stop_motor - bool
+* md25_driver/reset_encoders - bool
 
