@@ -30,6 +30,7 @@ private:
 public:
 
  MD25MotorDriverROSWrapper(ros::NodeHandle *nh){
+    motor.reset(new md25_driver("/dev/i2c-1"));  
     bool setup = motor->setup();
     if(!setup){
       ROS_ERROR("failed to setup motor driver!");
@@ -123,7 +124,7 @@ void stop(){
 };
 //---------------------------------------
 int main(int argc,char **argv){
-  ros::init(argc,argv,"motor_driver");
+  ros::init(argc,argv,"md25_driver");
   ros::NodeHandle nh;
   ros::AsyncSpinner spinner(4);
   spinner.start();

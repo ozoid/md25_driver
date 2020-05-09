@@ -77,13 +77,11 @@ public:
   uint8_t readRegisterByte(uint8_t reg);
   bool sendCommand(uint8_t command,int reg);
   //-------------
-  private:
-  
-
+private:
   int m_fd = -1;
   int address = 0x58;
   unsigned short m_software_version = 0;
-  unsigned char m_buff[BUF_LEN];  /* i2c bus buffer */
+  uint8_t m_buff[BUF_LEN];  /* i2c bus buffer */
 
   long m_encoder_1_ticks = 0;
   long m_encoder_2_ticks = 0;
@@ -98,7 +96,7 @@ public:
   static uint8_t const voltReg		= 0x0A;  // battery volts
   static uint8_t const current1Reg	= 0x0B;  // motor 1 current
   static uint8_t const current2Reg	= 0x0C;  // motor 2 current
-  static uint8_t const softwareVerReg= 0x0D;  // software version
+  static uint8_t const softwareVerReg = 0x0D;  // software version
   static uint8_t const accRateReg	= 0x0E;  // acceleration rate
   static uint8_t const modeReg		= 0x0F;  // mode of operation
   static uint8_t const stopSpeed		= 0x80;  // 0 velocity

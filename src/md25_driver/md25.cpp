@@ -1,8 +1,10 @@
 #include <md25_driver/md25.hpp>
 
-md25_driver::md25_driver(const char * _i2c_file)
-: m_i2c_file(_i2c_file)
+md25_driver::md25_driver(const char * _i2c_file) : m_i2c_file(_i2c_file)
 { clear_buffer(); }
+
+
+
 
 md25_driver::~md25_driver()
 { /* destructor */ }
@@ -18,6 +20,7 @@ bool md25_driver::setup()
   m_buff[0] = softwareVerReg;  /* get software version */
   if ((m_fd = open(m_i2c_file, O_RDWR)) < 0) {
     ROS_ERROR("Failed to open i2c file");
+    ROS_ERROR(m_i2c_file);
     return false;
   } else if (ioctl(m_fd, I2C_SLAVE, address) < 0) {
     ROS_ERROR("Could not speak to I2C bus!");
