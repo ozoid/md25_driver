@@ -24,7 +24,8 @@ Services:
 * md25_driver/stop_motor - bool
 * md25_driver/reset_encoders - bool
 
-```<launch>
+```
+<launch>
     <node name="md25_driver" pkg="md25_driver" type="md25_driver_node" launch-prefix="" output="screen">
         <param name="max_speed" type="int" value="5" />
         <param name="publish_current_speed_frequency" type="double" value="10.0" />
@@ -32,7 +33,12 @@ Services:
         <param name="publish_motor_encoders_frequency" type="double" value="1.0"/>
         <param name="publish_odom_frequency" type="double" value="1.0">
     </node>
+<<<<<<< HEAD
 </launch>```
 
 Requires read/write access to /dev/i2c-x - Ubuntu requires permission changes
 
+=======
+</launch>
+```
+>>>>>>> 25139c6eef3f095d40672313534fc39b31ea8feb
