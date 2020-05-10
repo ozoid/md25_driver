@@ -33,12 +33,6 @@ Services:
         <param name="publish_motor_encoders_frequency" type="double" value="1.0"/>
         <param name="publish_odom_frequency" type="double" value="1.0">
     </node>
-<<<<<<< HEAD
 </launch>```
 
 Requires read/write access to /dev/i2c-x - Ubuntu requires permission changes
-
-=======
-</launch>
-```
->>>>>>> 25139c6eef3f095d40672313534fc39b31ea8feb
