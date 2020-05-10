@@ -1,12 +1,14 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>md25_driver</name>
-  <version>0.0.3</version>
+  <version>0.0.4</version>
   <description>MD25 ROS Driver.</description>
   <maintainer email="steve@ozoid.com">Steve Lawrence</maintainer>
   <author email="steve@ozoid.com">Steve Lawrence</author>
   <license>Apache-2.0</license>
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
+  <build_depend>tf</build_depend>
   <exec_depend>roscpp</exec_depend>
+  <exec_depend>tf</exec_depend>
 </package>

@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -Wextra")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED roscpp)
+find_package(catkin REQUIRED roscpp tf)
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations

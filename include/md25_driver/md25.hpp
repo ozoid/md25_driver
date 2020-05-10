@@ -72,7 +72,7 @@ public:
   bool read_encoders();
   bool reset_encoders();
   
-  void clear_buffer();
+ 
   int readEncoderArray(uint8_t reg);
   uint8_t readRegisterByte(uint8_t reg);
   bool sendCommand(uint8_t command,int reg);
@@ -81,8 +81,8 @@ private:
   int m_fd = -1;
   int address = 0x58;
   unsigned short m_software_version = 0;
-  uint8_t m_buff[BUF_LEN];  /* i2c bus buffer */
-
+  //uint8_t m_buff[BUF_LEN] = {};  /* i2c bus buffer */
+  void clear_buffer();
   long m_encoder_1_ticks = 0;
   long m_encoder_2_ticks = 0;
 

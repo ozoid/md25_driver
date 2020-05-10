@@ -1,7 +1,9 @@
 #include <md25_driver/md25.hpp>
 
 md25_driver::md25_driver(const char * _i2c_file) : m_i2c_file(_i2c_file)
-{ clear_buffer(); }
+{ 
+ // clear_buffer(); 
+  }
 
 
 
@@ -17,6 +19,7 @@ bool md25_driver::setup()
    *
    * (hopefully it sticks around).
    */
+  uint8_t m_buff[BUF_LEN] = {};
   m_buff[0] = softwareVerReg;  /* get software version */
   if ((m_fd = open(m_i2c_file, O_RDWR)) < 0) {
     ROS_ERROR("Failed to open i2c file");
@@ -53,11 +56,13 @@ bool md25_driver::reset_encoders()
 
 void md25_driver::clear_buffer()
 {
+  uint8_t m_buff[BUF_LEN] = {};
   for (int x = BUF_LEN; x --> 0; m_buff[x] = 0x0);
 }
 
 bool md25_driver::read_encoders()
 {
+  uint8_t m_buff[BUF_LEN] = {};
   /* encoder 1 is stored in registers 2 - 5 */
   m_buff[0] = encoderOneReg;
 
@@ -89,6 +94,7 @@ std::pair<long, long> md25_driver::get_encoders()
 
 void md25_driver::stop_motors()
 {
+  uint8_t m_buff[BUF_LEN] = {};
   ROS_INFO("HALT received, stopping motors");
   m_buff[0] = speed1Reg;
   m_buff[1] = 128;  /* this speed stops the motors */
@@ -228,7 +234,8 @@ void md25_driver::setMotorSpeed(uint8_t motor, uint8_t speed)
 }
 
 int32_t md25_driver::readEncoderArray(uint8_t reg){
-m_buff[0] = reg;
+  uint8_t m_buff[BUF_LEN] = {};
+  m_buff[0] = reg;
   if (write(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("Could not write to i2c");
     return false;
@@ -241,6 +248,7 @@ m_buff[0] = reg;
 }
 
 uint8_t md25_driver::readRegisterByte(uint8_t reg){
+  uint8_t m_buff[BUF_LEN] = {};
   m_buff[0] = reg;
   if (write(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("Could not write to i2c");
@@ -253,6 +261,7 @@ uint8_t md25_driver::readRegisterByte(uint8_t reg){
 }
 
 bool md25_driver::sendCommand(uint8_t command,int reg){
+  uint8_t m_buff[BUF_LEN] = {};
   m_buff[0] = reg;
   m_buff[1] = command;
   if (write(m_fd, m_buff, 2) != 2) {

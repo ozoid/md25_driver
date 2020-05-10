@@ -9,25 +9,49 @@
 #include <std_msgs/Int32MultiArray.h>
 #include <std_msgs/ByteMultiArray.h>
 #include <std_srvs/Trigger.h>
+#include <nav_msgs/Odometry.h>
+#include <geometry_msgs/Quaternion.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <diagnostic_msgs/DiagnosticStatus.h>
 #include <diagnostic_msgs/KeyValue.h>
+#include <tf/transform_broadcaster.h>
+//#include <tf2_ros/transform_broadcaster.h>
 
 class MD25MotorDriverROSWrapper{
 private:
   std::unique_ptr<md25_driver> motor;
   ros::Subscriber speed_command_subscriber_;
+
   ros::Publisher current_speed_publisher_;
   ros::Publisher motor_status_publisher_;
   ros::Publisher motor_encoders_publisher_;
+  ros::Publisher odom_publisher_;
+
   ros::ServiceServer stop_motor_server_;
   ros::ServiceServer reset_encoders_server_;
+
   ros::Timer current_speed_timer_;
   ros::Timer motor_status_timer_;
   ros::Timer motor_encoders_timer_;
+  ros::Timer odom_timer_;
+
+  tf::TransformBroadcaster transform_broadcaster_;
+  
   double publish_current_speed_frequency_;
   double publish_motor_status_frequency_;
   double publish_motor_encoders_frequency_;
+  double publish_odom_frequency_;
+
+  long _PreviousLeftEncoderCounts = 0;
+  long _PreviousRightEncoderCounts =0;
+  double DistancePerCount = (3.14159265 * 0.13) / 2626; 
+  double lengthBetweenTwoWheels = 0.25;
+
 public:
+  double x = 0.0;
+  double y = 0.0; 
+  double th_angle = 0.0;
+  ros::Time last_time;
 
  MD25MotorDriverROSWrapper(ros::NodeHandle *nh){
     motor.reset(new md25_driver("/dev/i2c-1"));  
@@ -35,7 +59,7 @@ public:
     if(!setup){
       ROS_ERROR("failed to setup motor driver!");
     }
-
+    motor->resetEncoders();
     int max_speed;
     if(!ros::param::get("~max_speed",max_speed)){
       max_speed = 120;
@@ -50,17 +74,25 @@ public:
     if(!ros::param::get("~publish_motor_encoders_frequency",publish_motor_encoders_frequency_)){
       publish_motor_encoders_frequency_ = 1.0;
     }
+     if(!ros::param::get("~publish_odom_frequency",publish_motor_encoders_frequency_)){
+      publish_motor_encoders_frequency_ = 1.0;
+    }
     //--------
+    
     speed_command_subscriber_ = nh->subscribe("speed_command",10,&MD25MotorDriverROSWrapper::callbackSpeedCommand, this);
     stop_motor_server_ = nh->advertiseService("md25_driver/stop_motor",&MD25MotorDriverROSWrapper::callbackStop, this);
     reset_encoders_server_ = nh->advertiseService("md25_driver/reset_encoders",&MD25MotorDriverROSWrapper::callbackReset,this);
+
     current_speed_publisher_ = nh->advertise<std_msgs::ByteMultiArray>("current_speed",10);
     motor_status_publisher_ = nh->advertise<diagnostic_msgs::DiagnosticStatus>("motor_status",10);
     motor_encoders_publisher_ = nh->advertise<std_msgs::Int32MultiArray>("motor_encoders",10);
+    odom_publisher_ = nh->advertise<nav_msgs::Odometry>("odom",10);
+
 
     current_speed_timer_ = nh->createTimer(ros::Duration(1.0 / publish_current_speed_frequency_),&MD25MotorDriverROSWrapper::publishCurrentSpeed,this);
     motor_status_timer_ = nh->createTimer(ros::Duration(1.0 / publish_current_speed_frequency_),&MD25MotorDriverROSWrapper::publishMotorStatus,this);
     motor_encoders_timer_ = nh->createTimer(ros::Duration(1.0 / publish_motor_encoders_frequency_),&MD25MotorDriverROSWrapper::publishEncoders,this);
+    odom_timer_ = nh->createTimer(ros::Duration(1.0 / publish_odom_frequency_),&MD25MotorDriverROSWrapper::publishOdom,this);
   }
 //---------------------------------------
 void callbackSpeedCommand(const std_msgs::ByteMultiArray &msg){
@@ -121,6 +153,71 @@ void publishMotorStatus(const ros::TimerEvent &event){
 void stop(){
     motor->stop_motors();
  }
+//---------------------------------------
+void publishOdom(const ros::TimerEvent &event){
+  ros::Time current_time = ros::Time::now();
+  long tick_l;
+  long tick_r;
+  std::tie(tick_l, tick_r) = motor->get_encoders();
+  //extract the wheel velocities from the tick signals count
+  long deltaLeft = tick_l - _PreviousLeftEncoderCounts;
+  long deltaRight = tick_r - _PreviousRightEncoderCounts;
+  double v_left = (deltaLeft * DistancePerCount) / (current_time - last_time).toSec();
+  double v_right = (deltaRight * DistancePerCount) / (current_time - last_time).toSec();
+  double v = ((v_right + v_left) / 2); //directional velocity
+  double w = ((v_right - v_left)/lengthBetweenTwoWheels); //angularvelocity
+
+  double dt = (current_time - last_time).toSec();
+  double delta_x = (v * cos(w)) * dt;
+  double delta_y = (v * sin(w)) * dt;
+  double delta_th = w * dt;
+
+  x += delta_x;
+  y += delta_y;
+  th_angle += delta_th;
+
+  geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(th_angle);
+
+  geometry_msgs::TransformStamped odom_trans;
+  odom_trans.header.stamp = current_time;
+  odom_trans.header.frame_id = "odom";
+  odom_trans.child_frame_id = "base_link";
+
+  odom_trans.transform.translation.x = x;
+  odom_trans.transform.translation.y = y;
+  odom_trans.transform.translation.z = 0.0;
+  odom_trans.transform.rotation = odom_quat;
+
+  //send the transform
+  transform_broadcaster_.sendTransform(odom_trans);
+
+  //Odometry message
+  nav_msgs::Odometry odom;
+  odom.header.stamp = current_time;
+  odom.header.frame_id = "odom";
+
+  //set the position
+  odom.pose.pose.position.x = x;
+  odom.pose.pose.position.y = y;
+  odom.pose.pose.position.z = 0.0;
+  odom.pose.pose.orientation = odom_quat;
+
+   //set the velocity
+  odom.child_frame_id = "base_link";
+  odom.twist.twist.linear.x = v;
+  odom.twist.twist.linear.y = 0;
+  odom.twist.twist.angular.z = w;
+
+  //publish the message
+  odom_publisher_.publish(odom);
+  _PreviousLeftEncoderCounts = tick_l;
+  _PreviousRightEncoderCounts = tick_r;
+
+  last_time = current_time;
+
+}
+
+
 };
 //---------------------------------------
 int main(int argc,char **argv){
