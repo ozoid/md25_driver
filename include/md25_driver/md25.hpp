@@ -20,7 +20,7 @@
 #include <cstring>
 #include <memory>
 #include <tuple>
-
+#include <mutex>
 #include <linux/i2c-dev.h>
 
 #include <sys/ioctl.h>
@@ -69,10 +69,8 @@ public:
   void setAccelerationRate(uint8_t rate);
   void setMotorSpeed(uint8_t motor, uint8_t speed);
   void stop_motors();
-  bool read_encoders();
+  std::pair<long, long> read_encoders();
   bool reset_encoders();
-  
- 
   int readEncoderArray(uint8_t reg);
   uint8_t readRegisterByte(uint8_t reg);
   bool sendCommand(uint8_t command,int reg);
@@ -82,7 +80,7 @@ private:
   int address = 0x58;
   unsigned short m_software_version = 0;
   //uint8_t m_buff[BUF_LEN] = {};  /* i2c bus buffer */
-  void clear_buffer();
+  std::mutex lock;
   long m_encoder_1_ticks = 0;
   long m_encoder_2_ticks = 0;
 

@@ -6,6 +6,7 @@
 #include <ros/ros.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/MultiArrayLayout.h>
+#include <std_msgs/Int16MultiArray.h>
 #include <std_msgs/Int32MultiArray.h>
 #include <std_msgs/ByteMultiArray.h>
 #include <std_srvs/Trigger.h>
@@ -19,7 +20,7 @@
 
 class MD25MotorDriverROSWrapper{
 private:
-  std::unique_ptr<md25_driver> motor;
+  
   ros::Subscriber speed_command_subscriber_;
 
   ros::Publisher current_speed_publisher_;
@@ -52,6 +53,7 @@ public:
   double y = 0.0; 
   double th_angle = 0.0;
   ros::Time last_time;
+  std::unique_ptr<md25_driver> motor;
 
  MD25MotorDriverROSWrapper(ros::NodeHandle *nh){
     motor.reset(new md25_driver("/dev/i2c-1"));  
@@ -74,8 +76,8 @@ public:
     if(!ros::param::get("~publish_motor_encoders_frequency",publish_motor_encoders_frequency_)){
       publish_motor_encoders_frequency_ = 1.0;
     }
-     if(!ros::param::get("~publish_odom_frequency",publish_motor_encoders_frequency_)){
-      publish_motor_encoders_frequency_ = 1.0;
+     if(!ros::param::get("~publish_odom_frequency",publish_odom_frequency_)){
+      publish_odom_frequency_ = 1.0;
     }
     //--------
     
@@ -85,9 +87,8 @@ public:
 
     current_speed_publisher_ = nh->advertise<std_msgs::ByteMultiArray>("current_speed",10);
     motor_status_publisher_ = nh->advertise<diagnostic_msgs::DiagnosticStatus>("motor_status",10);
-    motor_encoders_publisher_ = nh->advertise<std_msgs::Int32MultiArray>("motor_encoders",10);
+    motor_encoders_publisher_ = nh->advertise<std_msgs::Int16MultiArray>("motor_encoders",10);
     odom_publisher_ = nh->advertise<nav_msgs::Odometry>("odom",10);
-
 
     current_speed_timer_ = nh->createTimer(ros::Duration(1.0 / publish_current_speed_frequency_),&MD25MotorDriverROSWrapper::publishCurrentSpeed,this);
     motor_status_timer_ = nh->createTimer(ros::Duration(1.0 / publish_current_speed_frequency_),&MD25MotorDriverROSWrapper::publishMotorStatus,this);
@@ -123,10 +124,24 @@ void publishCurrentSpeed(const ros::TimerEvent &event){
  }
 //---------------------------------------
 void publishEncoders(const ros::TimerEvent &event){
-   std_msgs::Int32MultiArray irry;
+   std_msgs::Int16MultiArray irry;
    irry.data.clear();
-   irry.data.push_back(motor->getEncoder1());
-   irry.data.push_back(motor->getEncoder2());
+    
+
+   long tick_l=0;
+   long tick_r=0;
+   std::pair<long,long> ticks = motor->read_encoders();
+   irry.data.push_back(ticks.first);
+   irry.data.push_back(ticks.second);
+    irry.layout.dim.push_back(std_msgs::MultiArrayDimension());
+    irry.layout.dim[0].size = 16;
+    irry.layout.dim[0].stride = 1;
+    irry.layout.dim[0].label = "left";
+    irry.layout.dim.push_back(std_msgs::MultiArrayDimension());
+    irry.layout.dim[1].size = 16;
+    irry.layout.dim[1].stride = 1;
+    irry.layout.dim[1].label = "right";
+   //tickpair = motor->read_encoders()
    motor_encoders_publisher_.publish(irry);
  }
 //---------------------------------------
@@ -152,6 +167,10 @@ void publishMotorStatus(const ros::TimerEvent &event){
 //---------------------------------------
 void stop(){
     motor->stop_motors();
+ }
+//---------------------------------------
+ void shutdown(){
+    
  }
 //---------------------------------------
 void publishOdom(const ros::TimerEvent &event){
@@ -226,7 +245,8 @@ int main(int argc,char **argv){
   ros::AsyncSpinner spinner(4);
   spinner.start();
   MD25MotorDriverROSWrapper motor_wrapper(&nh);
-  ROS_INFO("MD25 Motor Driver Started");
+  ROS_INFO("MD25 Motor Driver v0.5 Started");
   ros::waitForShutdown();
   motor_wrapper.stop();
+  motor_wrapper.shutdown();
  }
