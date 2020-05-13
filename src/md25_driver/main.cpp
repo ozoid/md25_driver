@@ -23,24 +23,24 @@ private:
   
   ros::Subscriber speed_command_subscriber_;
 
-  ros::Publisher current_speed_publisher_;
+  //ros::Publisher current_speed_publisher_;
   ros::Publisher motor_status_publisher_;
-  ros::Publisher motor_encoders_publisher_;
+  //ros::Publisher motor_encoders_publisher_;
   ros::Publisher odom_publisher_;
 
   ros::ServiceServer stop_motor_server_;
   ros::ServiceServer reset_encoders_server_;
 
-  ros::Timer current_speed_timer_;
+  //ros::Timer current_speed_timer_;
   ros::Timer motor_status_timer_;
-  ros::Timer motor_encoders_timer_;
+  //ros::Timer motor_encoders_timer_;
   ros::Timer odom_timer_;
 
   tf::TransformBroadcaster transform_broadcaster_;
   
-  double publish_current_speed_frequency_;
+  //double publish_current_speed_frequency_;
   double publish_motor_status_frequency_;
-  double publish_motor_encoders_frequency_;
+  //double publish_motor_encoders_frequency_;
   double publish_odom_frequency_;
 
   long _PreviousLeftEncoderCounts = 0;
@@ -67,17 +67,17 @@ public:
       max_speed = 120;
     }
     //--------
-    if(!ros::param::get("~publish_current_speed_frequency",publish_current_speed_frequency_)){
-      publish_current_speed_frequency_ = 5.0;
-    }
+    // if(!ros::param::get("~publish_current_speed_frequency",publish_current_speed_frequency_)){
+    //   publish_current_speed_frequency_ = 5.0;
+    // }
     if(!ros::param::get("~publish_motor_status_frequency",publish_motor_status_frequency_)){
-      publish_motor_status_frequency_ = 5.0;
+      publish_motor_status_frequency_ = 1.0;
     }
-    if(!ros::param::get("~publish_motor_encoders_frequency",publish_motor_encoders_frequency_)){
-      publish_motor_encoders_frequency_ = 1.0;
-    }
+    // if(!ros::param::get("~publish_motor_encoders_frequency",publish_motor_encoders_frequency_)){
+    //   publish_motor_encoders_frequency_ = 1.0;
+    // }
      if(!ros::param::get("~publish_odom_frequency",publish_odom_frequency_)){
-      publish_odom_frequency_ = 1.0;
+      publish_odom_frequency_ = 10.0;
     }
     //--------
     
@@ -85,14 +85,14 @@ public:
     stop_motor_server_ = nh->advertiseService("md25_driver/stop_motor",&MD25MotorDriverROSWrapper::callbackStop, this);
     reset_encoders_server_ = nh->advertiseService("md25_driver/reset_encoders",&MD25MotorDriverROSWrapper::callbackReset,this);
 
-    current_speed_publisher_ = nh->advertise<std_msgs::ByteMultiArray>("current_speed",10);
+    //current_speed_publisher_ = nh->advertise<std_msgs::ByteMultiArray>("current_speed",10);
     motor_status_publisher_ = nh->advertise<diagnostic_msgs::DiagnosticStatus>("motor_status",10);
-    motor_encoders_publisher_ = nh->advertise<std_msgs::Int16MultiArray>("motor_encoders",10);
+    //motor_encoders_publisher_ = nh->advertise<std_msgs::Int16MultiArray>("motor_encoders",10);
     odom_publisher_ = nh->advertise<nav_msgs::Odometry>("odom",10);
 
-    current_speed_timer_ = nh->createTimer(ros::Duration(1.0 / publish_current_speed_frequency_),&MD25MotorDriverROSWrapper::publishCurrentSpeed,this);
+    //current_speed_timer_ = nh->createTimer(ros::Duration(1.0 / publish_current_speed_frequency_),&MD25MotorDriverROSWrapper::publishCurrentSpeed,this);
     motor_status_timer_ = nh->createTimer(ros::Duration(1.0 / publish_current_speed_frequency_),&MD25MotorDriverROSWrapper::publishMotorStatus,this);
-    motor_encoders_timer_ = nh->createTimer(ros::Duration(1.0 / publish_motor_encoders_frequency_),&MD25MotorDriverROSWrapper::publishEncoders,this);
+    //motor_encoders_timer_ = nh->createTimer(ros::Duration(1.0 / publish_motor_encoders_frequency_),&MD25MotorDriverROSWrapper::publishEncoders,this);
     odom_timer_ = nh->createTimer(ros::Duration(1.0 / publish_odom_frequency_),&MD25MotorDriverROSWrapper::publishOdom,this);
   }
 //---------------------------------------
@@ -126,8 +126,6 @@ void publishCurrentSpeed(const ros::TimerEvent &event){
 void publishEncoders(const ros::TimerEvent &event){
    std_msgs::Int16MultiArray irry;
    irry.data.clear();
-    
-
    long tick_l=0;
    long tick_r=0;
    std::pair<long,long> ticks = motor->read_encoders();
