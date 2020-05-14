@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>md25_driver</name>
-  <version>0.5</version>
+  <version>0.5.2</version>
   <description>MD25 ROS Driver.</description>
   <maintainer email="steve@ozoid.com">Steve Lawrence</maintainer>
   <author email="steve@ozoid.com">Steve Lawrence</author>
