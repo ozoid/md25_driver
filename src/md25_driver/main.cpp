@@ -4,6 +4,7 @@
 #include <memory>
 #include <md25_driver/md25.hpp>
 #include <ros/ros.h>
+#include <std_msgs/Int16.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/MultiArrayLayout.h>
 #include <std_msgs/Int16MultiArray.h>
@@ -21,12 +22,16 @@
 class MD25MotorDriverROSWrapper{
 private:
   
-  ros::Subscriber speed_command_subscriber_;
+  //ros::Subscriber speed_command_subscriber_;
+  ros::Subscriber lmotor_subscriber_;
+  ros::Subscriber rmotor_subscriber_;
 
-  ros::Publisher current_speed_publisher_;
+  //ros::Publisher current_speed_publisher_;
   ros::Publisher motor_status_publisher_;
-  ros::Publisher motor_encoders_publisher_;
-  ros::Publisher odom_publisher_;
+  //ros::Publisher motor_encoders_publisher_;
+  //ros::Publisher odom_publisher_;
+  ros::Publisher lmotor_encoder_publisher_;
+  ros::Publisher rmotor_encoder_publisher_;
 
   ros::ServiceServer stop_motor_server_;
   ros::ServiceServer reset_encoders_server_;
@@ -47,14 +52,14 @@ private:
   long _PreviousRightEncoderCounts =0;
   double DistancePerCount = (3.14159265 * 0.13) / 2626; 
   double lengthBetweenTwoWheels = 0.25;
-
+//---------------------------------------
 public:
   double x = 0.0;
   double y = 0.0; 
   double th_angle = 0.0;
   ros::Time last_time;
   std::unique_ptr<md25_driver> motor;
-
+//---------------------------------------
  MD25MotorDriverROSWrapper(ros::NodeHandle *nh){
     motor.reset(new md25_driver("/dev/i2c-1"));  
     bool setup = motor->setup();
@@ -81,13 +86,17 @@ public:
     // }
     //--------
     
-    speed_command_subscriber_ = nh->subscribe("speed_command",10,&MD25MotorDriverROSWrapper::callbackSpeedCommand, this);
+    lmotor_subscriber_ = nh->subscribe("lmotor",10,&MD25MotorDriverROSWrapper::callbackLSpeedCommand, this);
+    rmotor_subscriber_ = nh->subscribe("rmotor",10,&MD25MotorDriverROSWrapper::callbackRSpeedCommand, this);
+      
     stop_motor_server_ = nh->advertiseService("md25_driver/stop_motor",&MD25MotorDriverROSWrapper::callbackStop, this);
     reset_encoders_server_ = nh->advertiseService("md25_driver/reset_encoders",&MD25MotorDriverROSWrapper::callbackReset,this);
 
     //current_speed_publisher_ = nh->advertise<std_msgs::ByteMultiArray>("current_speed",10);
     motor_status_publisher_ = nh->advertise<diagnostic_msgs::DiagnosticStatus>("motor_status",10);
-    motor_encoders_publisher_ = nh->advertise<std_msgs::Int16MultiArray>("motor_encoders",10);
+    //motor_encoders_publisher_ = nh->advertise<std_msgs::Int16MultiArray>("motor_encoders",10);
+    lmotor_encoder_publisher_= nh->advertise<std_msgs::Int16>("lwheel",10);
+    rmotor_encoder_publisher_= nh->advertise<std_msgs::Int16>("rwheel",10);
     //odom_publisher_ = nh->advertise<nav_msgs::Odometry>("odom",10);
 
     //current_speed_timer_ = nh->createTimer(ros::Duration(1.0 / publish_current_speed_frequency_),&MD25MotorDriverROSWrapper::publishCurrentSpeed,this);
@@ -96,9 +105,12 @@ public:
     //odom_timer_ = nh->createTimer(ros::Duration(1.0 / publish_odom_frequency_),&MD25MotorDriverROSWrapper::publishOdom,this);
   }
 //---------------------------------------
-void callbackSpeedCommand(const std_msgs::ByteMultiArray &msg){
-      motor->setMotor1Speed(msg.data[0]);
-      motor->setMotor2Speed(msg.data[1]);
+void callbackLSpeedCommand(const std_msgs::Int16 &msg){
+      motor->setMotor1Speed(msg.data);
+  }
+//---------------------------------------
+  void callbackRSpeedCommand(const std_msgs::Int16 &msg){
+      motor->setMotor2Speed(msg.data);
   }
 //---------------------------------------
 bool callbackReset(std_srvs::Trigger::Request &req, std_srvs::TriggerResponse &res){
@@ -120,26 +132,32 @@ void publishCurrentSpeed(const ros::TimerEvent &event){
    barry.data.clear();
    barry.data.push_back(motor->getMotor1Speed());
    barry.data.push_back(motor->getMotor2Speed());
-   current_speed_publisher_.publish(barry);
+   //current_speed_publisher_.publish(barry);
  }
 //---------------------------------------
 void publishEncoders(const ros::TimerEvent &event){
-   std_msgs::Int16MultiArray irry;
-   irry.data.clear();
-   long tick_l=0;
-   long tick_r=0;
-   std::pair<long,long> ticks = motor->readEncoders();
-   irry.data.push_back(ticks.first);
-   irry.data.push_back(ticks.second);
-    irry.layout.dim.push_back(std_msgs::MultiArrayDimension());
-    irry.layout.dim[0].size = 16;
-    irry.layout.dim[0].stride = 1;
-    irry.layout.dim[0].label = "left";
-    irry.layout.dim.push_back(std_msgs::MultiArrayDimension());
-    irry.layout.dim[1].size = 16;
-    irry.layout.dim[1].stride = 1;
-    irry.layout.dim[1].label = "right";
-   motor_encoders_publisher_.publish(irry);
+  //  std_msgs::Int16MultiArray irry;
+  //  irry.data.clear();
+  //  long tick_l=0;
+  //  long tick_r=0;
+   std::pair<int,int> ticks = motor->readEncoders();
+  //  irry.data.push_back(ticks.first);
+  //  irry.data.push_back(ticks.second);
+    // irry.layout.dim.push_back(std_msgs::MultiArrayDimension());
+    // irry.layout.dim[0].size = 16;
+    // irry.layout.dim[0].stride = 1;
+    // irry.layout.dim[0].label = "left";
+    // irry.layout.dim.push_back(std_msgs::MultiArrayDimension());
+    // irry.layout.dim[1].size = 16;
+    // irry.layout.dim[1].stride = 1;
+    // irry.layout.dim[1].label = "right";
+    std_msgs::Int16 lwheel;
+    lwheel.data = ticks.first;
+    std_msgs::Int16 rwheel;
+    rwheel.data = ticks.second;
+    
+   lmotor_encoder_publisher_.publish(lwheel);
+   rmotor_encoder_publisher_.publish(rwheel);
  }
 //---------------------------------------
 void publishMotorStatus(const ros::TimerEvent &event){
@@ -228,7 +246,7 @@ void publishOdom(const ros::TimerEvent &event){
   odom.twist.twist.angular.z = w;
 
   //publish the message
-  odom_publisher_.publish(odom);
+  //odom_publisher_.publish(odom);
   _PreviousLeftEncoderCounts = tick_l;
   _PreviousRightEncoderCounts = tick_r;
 
@@ -245,7 +263,7 @@ int main(int argc,char **argv){
   ros::AsyncSpinner spinner(4);
   spinner.start();
   MD25MotorDriverROSWrapper motor_wrapper(&nh);
-  ROS_INFO("MD25 Motor Driver v0.5.2 Started");
+  ROS_INFO("MD25 Motor Driver v0.6.0 Started");
   ros::waitForShutdown();
   motor_wrapper.stop();
   motor_wrapper.shutdown();

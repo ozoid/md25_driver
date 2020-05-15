@@ -43,64 +43,65 @@ public:
   bool setup();
   int getEncoder1();
   int getEncoder2();
-  std::pair<long, long> readEncoders();
-  uint8_t getSoftwareVersion();
-  uint8_t getBatteryVolts();
-  uint8_t getAccelerationRate();
-  uint8_t getMotor1Current();
-  uint8_t getMotor2Current();
-  uint8_t getMotor1Speed();
-  uint8_t getMotor2Speed();
-  uint8_t getMode();
+  std::pair<int, int> readEncoders();
+  int getSoftwareVersion();
+  int getBatteryVolts();
+  int getAccelerationRate();
+  int getMotor1Current();
+  int getMotor2Current();
+  int getMotor1Speed();
+  int getMotor2Speed();
+  int getMode();
 
-  void setMotorsSpeed(uint8_t speed);
-  void setMotor1Speed(uint8_t speed);
-  void setMotor2Speed(uint8_t speed);
-  void setMode(uint8_t mode);
-  void setAccelerationRate(uint8_t rate);
+  void setMotorsSpeed(int speed);
+  void setMotor1Speed(int speed);
+  void setMotor2Speed(int speed);
+  void setMode(int mode);
+  void setAccelerationRate(int rate);
   void stopMotor1();
   void stopMotor2();
   void stopMotors();
+  void haltMotors();
 
-  void resetEncoders();
+  bool resetEncoders();
   void enableSpeedRegulation();
   void disableSpeedRegulation();
   void enableTimeout();
   void disableTimeout();
-  void changeAddress(uint8_t newAddress);
+  void changeAddress(int newAddress);
   //-------------
 private:
   std::mutex lock;
-  int32_t readEncoderArray(uint8_t reg);
-  uint8_t readRegisterByte(uint8_t reg);
-  void setMotorSpeed(uint8_t motor, uint8_t speed);
-  bool sendCommand(uint8_t command,int reg);
+  int readEncoderArray(int reg);
+  int readRegisterByte(int reg);
+  void setMotorSpeed(int motor, int speed);
+  bool sendCommand(int command,int reg);
 
   int m_fd = -1;
   int address = 0x58;
-  unsigned short m_software_version = 0;
-  long m_encoder_1_ticks = 0;
-  long m_encoder_2_ticks = 0;
+  int m_software_version = 0;
+  int m_encoder_1_ticks = 0;
+  int m_encoder_2_ticks = 0;
   
   const char * m_i2c_file = nullptr;
     
-  static uint8_t const SPD1		            = 0x00;  // speed to first motor
-  static uint8_t const SPD2		            = 0x01;  // speed to second motor
-  static uint8_t const ENC1	              = 0x02;  // motor encoder 1 (first byte)
-  static uint8_t const ENC2	              = 0x06;  // motor encoder 2 (first byte)
-  static uint8_t const VOLT		            = 0x0A;  // battery volts
-  static uint8_t const I1	                = 0x0B;  // motor 1 current
-  static uint8_t const I2	                = 0x0C;  // motor 2 current
-  static uint8_t const SW_VER             = 0x0D;  // software version
-  static uint8_t const ACC_RATE	          = 0x0E;  // acceleration rate
-  static uint8_t const MODE		            = 0x0F;  // mode of operation
-  static uint8_t const CMD		            = 0x10;  // command register
-  static uint8_t const ENCODER_RESET      = 0x20; // 
-  static uint8_t const DISABLE_SPEED_REG  = 0x30; //
-  static uint8_t const ENABLE_SPEED_REG   = 0x31; //
-  static uint8_t const DISABLE_TIMEOUT    = 0x32; //  
-  static uint8_t const ENABLE_TIMEOUT     = 0x33; //
-  static uint8_t const STOP_SPEED	      	= 0x80;  // 0 velocity  
+  static int const SPD1		            = 0x00;  // speed to first motor
+  static int const SPD2		            = 0x01;  // speed to second motor
+  static int const ENC1	              = 0x02;  // motor encoder 1 (first byte)
+  static int const ENC2	              = 0x06;  // motor encoder 2 (first byte)
+  static int const VOLT		            = 0x0A;  // battery volts
+  static int const I1	                = 0x0B;  // motor 1 current
+  static int const I2	                = 0x0C;  // motor 2 current
+  static int const SW_VER             = 0x0D;  // software version
+  static int const ACC_RATE	          = 0x0E;  // acceleration rate
+  static int const MODE		            = 0x0F;  // mode of operation
+  static int const CMD		            = 0x10;  // command register
+  static int const ENCODER_RESET      = 0x20; // 
+  static int const DISABLE_SPEED_REG  = 0x30; //
+  static int const ENABLE_SPEED_REG   = 0x31; //
+  static int const DISABLE_TIMEOUT    = 0x32; //  
+  static int const ENABLE_TIMEOUT     = 0x33; //
+  static int const STOP_SPEED	      	= 0x80;  // 0 velocity  
 };
 
 #endif

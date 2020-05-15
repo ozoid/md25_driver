@@ -3,18 +3,23 @@ A ROS driver for the md25 motor controller
 
 Added functions to set speed etc. - ported from Arduino MD25 driver - Josh Villbrandt (http://javconcepts.com/), July 7, 2012.
 
-Wrapped MD25 ROS Driver - v0.5.2
+Wrapped MD25 ROS Driver - v0.6.0
+
+Updated to support ROS differential_drive (http://wiki.ros.org/differential_drive)
+
 
 Parameters:
 * publish_motor_status_frequency = 1.0
 * publish_motor_encoders_frequency = 10.0
 
 Subscriptions:
-* speed_command - std_msgs::ByteMultiArray[2] - left/right
+* lmotor - std_msgs::Int16
+* rmotor - std_msgs::Int16
 
 Advertisements:
 * motor_status - vector<diagnostic_msgs::KeyValue>[3] - motor current left/right, batteryvolts
-* motor_encoders - std_msgs::Int16MultiArray> - left/right wheel encoders
+* lwheel - std_msgs::Int16
+* rwheel - std_msgs::Int16
 
 Services:
 * md25_driver/stop_motor - bool

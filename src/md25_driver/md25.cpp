@@ -9,7 +9,7 @@ bool md25_driver::setup(){
    *
    * (hopefully it sticks around).
    */
-  uint8_t m_buff[BUF_LEN] = {};
+  int m_buff[BUF_LEN] = {};
   m_buff[0] = SW_VER;  /* get software version */
   if ((m_fd = open(m_i2c_file, O_RDWR)) < 0) {
     ROS_ERROR("Failed to open i2c file");
@@ -27,7 +27,7 @@ bool md25_driver::setup(){
   }
 
   ROS_INFO("MD25 Motors initialized with software verison '%u'", m_buff[0]);
-  m_software_version = static_cast<unsigned short>(m_buff[0]);
+  m_software_version = static_cast<int>(m_buff[0]);
   return resetEncoders();
 }
 //---------------------------------------------
@@ -40,8 +40,8 @@ bool md25_driver::resetEncoders(){
   return true;
 }
 //---------------------------------------------
-void md25_driver::stopMotors(){
-  uint8_t m_buff[BUF_LEN] = {0};
+void md25_driver::haltMotors(){
+  int m_buff[BUF_LEN] = {0};
   ROS_INFO("HALT received, stopping motors");
   m_buff[0] = SPD1;
   m_buff[1] = 128;  /* this speed stops the motors */
@@ -62,43 +62,43 @@ void md25_driver::stopMotors(){
   ROS_INFO("motors stopped");
 }
 //----------------------------------------------
-int32_t md25_driver::getEncoder1()
+int md25_driver::getEncoder1()
 {
    return readEncoderArray(ENC1);
 }
-int32_t md25_driver::getEncoder2()
+int md25_driver::getEncoder2()
 {
    return readEncoderArray(ENC2);
 }
-uint8_t md25_driver::getSoftwareVersion()
+int md25_driver::getSoftwareVersion()
 {
    return readRegisterByte(SW_VER);
 }
-uint8_t md25_driver::getBatteryVolts()
+int md25_driver::getBatteryVolts()
 {
    return readRegisterByte(VOLT);
 }
-uint8_t md25_driver::getAccelerationRate()
+int md25_driver::getAccelerationRate()
 {
    return readRegisterByte(ACC_RATE);
 }
-uint8_t md25_driver::getMotor1Speed()
+int md25_driver::getMotor1Speed()
 {
    return readRegisterByte(SPD1);
 }
-uint8_t md25_driver::getMotor2Speed()
+int md25_driver::getMotor2Speed()
 {
    return readRegisterByte(SPD2);
 }
-uint8_t md25_driver::getMotor1Current()
+int md25_driver::getMotor1Current()
 {
    return readRegisterByte(I1);
 }
-uint8_t md25_driver::getMotor2Current()
+int md25_driver::getMotor2Current()
 {
    return readRegisterByte(I2);
 }
-uint8_t md25_driver::getMode()
+int md25_driver::getMode()
 {
    return readRegisterByte(MODE);
 }
@@ -118,20 +118,20 @@ void md25_driver::disableTimeout()
 {
    sendCommand(DISABLE_TIMEOUT,CMD);
 }
-void md25_driver::setMotorsSpeed(uint8_t speed)
+void md25_driver::setMotorsSpeed(int speed)
 {
    setMotor1Speed(speed);
    setMotor2Speed(speed);
 }
-void md25_driver::setMotorSpeed(uint8_t motor, uint8_t speed)
+void md25_driver::setMotorSpeed(int motor, int speed)
 {
    sendCommand(speed,motor); //motor = 0|1 left|right
 }
-void md25_driver::setMotor1Speed(uint8_t speed)
+void md25_driver::setMotor1Speed(int speed)
 {
    setMotorSpeed(SPD1, speed);
 }
-void md25_driver::setMotor2Speed(uint8_t speed)
+void md25_driver::setMotor2Speed(int speed)
 {
    setMotorSpeed(SPD2, speed);
 }
@@ -148,17 +148,17 @@ void md25_driver::stopMotors()
    stopMotor1();
    stopMotor2();
 }
-void md25_driver::setMode(uint8_t mode)
+void md25_driver::setMode(int mode)
 {
    sendCommand(mode,MODE);
 }
-void md25_driver::setAccelerationRate(uint8_t rate)
+void md25_driver::setAccelerationRate(int rate)
 {
    sendCommand(rate,ACC_RATE);
 }
 //----------------------------------------------------
-std::pair<long, long> md25_driver::readEncoders(){
-  uint8_t m_buff[BUF_LEN] = {0};
+std::pair<int, int> md25_driver::readEncoders(){
+  int m_buff[BUF_LEN] = {0};
   /* encoder 1 is stored in registers 2 - 5 */
   m_buff[0] = ENC1;
   lock.lock();
@@ -181,8 +181,8 @@ std::pair<long, long> md25_driver::readEncoders(){
   return std::make_pair(m_encoder_1_ticks, m_encoder_2_ticks);
 }
 //-------------------------------------------------------
-int32_t md25_driver::readEncoderArray(uint8_t reg){
-  uint8_t m_buff[BUF_LEN] = {0};
+int md25_driver::readEncoderArray(int reg){
+  int m_buff[BUF_LEN] = {0};
   m_buff[0] = reg;
   lock.lock();
   if (write(m_fd, m_buff, 1) != 1) {
@@ -198,8 +198,8 @@ int32_t md25_driver::readEncoderArray(uint8_t reg){
   return (m_buff[0] << 24) + (m_buff[1] << 16) + (m_buff[2] << 8) + m_buff[3];
 }
 
-uint8_t md25_driver::readRegisterByte(uint8_t reg){
-  uint8_t m_buff[BUF_LEN] = {0};
+int md25_driver::readRegisterByte(int reg){
+  int m_buff[BUF_LEN] = {0};
   m_buff[0] = reg;
   lock.lock();
   if (write(m_fd, m_buff, 1) != 1) {
@@ -215,8 +215,8 @@ uint8_t md25_driver::readRegisterByte(uint8_t reg){
   return m_buff[0];
 }
 
-bool md25_driver::sendCommand(uint8_t command,int reg){
-  uint8_t m_buff[BUF_LEN] = {0};
+bool md25_driver::sendCommand(int command,int reg){
+  int m_buff[BUF_LEN] = {0};
   m_buff[0] = reg;
   m_buff[1] = command;
   lock.lock();
