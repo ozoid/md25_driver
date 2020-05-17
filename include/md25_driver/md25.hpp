@@ -63,6 +63,7 @@ public:
   void stopMotors();
   void haltMotors();
 
+  bool writeSpeed(int left,int right);
   bool resetEncoders();
   void enableSpeedRegulation();
   void disableSpeedRegulation();
@@ -83,25 +84,25 @@ private:
   int m_encoder_1_ticks = 0;
   int m_encoder_2_ticks = 0;
   
-  const char * m_i2c_file = nullptr;
-    
-  static int const SPD1		            = 0x00;  // speed to first motor
-  static int const SPD2		            = 0x01;  // speed to second motor
-  static int const ENC1	              = 0x02;  // motor encoder 1 (first byte)
-  static int const ENC2	              = 0x06;  // motor encoder 2 (first byte)
-  static int const VOLT		            = 0x0A;  // battery volts
-  static int const I1	                = 0x0B;  // motor 1 current
-  static int const I2	                = 0x0C;  // motor 2 current
-  static int const SW_VER             = 0x0D;  // software version
-  static int const ACC_RATE	          = 0x0E;  // acceleration rate
-  static int const MODE		            = 0x0F;  // mode of operation
-  static int const CMD		            = 0x10;  // command register
-  static int const ENCODER_RESET      = 0x20; // 
-  static int const DISABLE_SPEED_REG  = 0x30; //
-  static int const ENABLE_SPEED_REG   = 0x31; //
-  static int const DISABLE_TIMEOUT    = 0x32; //  
-  static int const ENABLE_TIMEOUT     = 0x33; //
-  static int const STOP_SPEED	      	= 0x80;  // 0 velocity  
+  const char * m_i2c_file      = nullptr;
+  
+  static const int SPD1		            = 0x00;  // speed to first motor
+  static const int SPD2		            = 0x01;  // speed to second motor
+  static const int ENC1	              = 0x02;  // motor encoder 1 (first byte)
+  static const int ENC2	              = 0x06;  // motor encoder 2 (first byte)
+  static const int VOLT		            = 0x0A;  // battery volts
+  static const int I1	                = 0x0B;  // motor 1 current
+  static const int I2	                = 0x0C;  // motor 2 current
+  static const int SW_VER             = 0x0D;  // software version
+  static const int ACC_RATE	          = 0x0E;  // acceleration rate
+  static const int MODE		            = 0x0F;  // mode of operation
+  static const int CMD		            = 0x10;  // command register
+  static const int ENCODER_RESET      = 0x20; // 
+  static const int DISABLE_SPEED_REG  = 0x30; //
+  static const int ENABLE_SPEED_REG   = 0x31; //
+  static const int DISABLE_TIMEOUT    = 0x32; //  
+  static const int ENABLE_TIMEOUT     = 0x33; //
+  static const int STOP_SPEED	      	= 0x80;  // 0 velocity  
 };
 
 #endif

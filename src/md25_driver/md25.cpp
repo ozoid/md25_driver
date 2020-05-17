@@ -181,6 +181,33 @@ std::pair<int, int> md25_driver::readEncoders(){
   return std::make_pair(m_encoder_1_ticks, m_encoder_2_ticks);
 }
 //-------------------------------------------------------
+bool md25_driver::writeSpeed(int left,int right){
+  if(left>127)left=127;
+  if(right>127)right=127;
+  if(left<-127)left=-127;
+  if(right<-127)right=-127;
+
+  int m_buff[BUF_LEN] = {0};
+  m_buff[0] = SPD1;
+  m_buff[1] = left;
+  m_buff[2] = right;
+  lock.lock();
+  if (write(m_fd, m_buff, 3) != 3) {
+    ROS_ERROR("failed to send  speed command!");
+    lock.unlock();
+    return false;  
+  }
+  // m_buff[0] = SPD2;
+  // m_buff[1] = right;
+  // if (write(m_fd, m_buff, 2) != 2) {
+  //   ROS_ERROR("failed to send right speed command!");
+  //   lock.unlock();
+  //   return false;  
+  // }
+  lock.unlock();
+  return true;
+}
+//-------------------------------------------------------
 int md25_driver::readEncoderArray(int reg){
   int m_buff[BUF_LEN] = {0};
   m_buff[0] = reg;
