@@ -41,49 +41,38 @@ public:
   ~md25_driver();
   //-------------------- 
   bool setup();
-  int getEncoder1();
-  int getEncoder2();
-  std::pair<int, int> readEncoders();
   int getSoftwareVersion();
   int getBatteryVolts();
   int getAccelerationRate();
-  int getMotor1Current();
-  int getMotor2Current();
-  int getMotor1Speed();
-  int getMotor2Speed();
   int getMode();
-
-  void setMotorsSpeed(int speed);
-  void setMotor1Speed(int speed);
-  void setMotor2Speed(int speed);
-  void setMode(int mode);
-  void setAccelerationRate(int rate);
-  void stopMotor1();
-  void stopMotor2();
-  void stopMotors();
-  void haltMotors();
-
-  bool writeSpeed(int left,int right);
+  std::pair<int,int> getMotorsSpeed();
+  std::pair<int,int> getMotorsCurrent();
+  bool enableSpeedRegulation();
+  bool disableSpeedRegulation();
+  bool enableTimeout();
+  bool disableTimeout();
+  bool setMotorsSpeed(int speed1,int speed2);
+  bool stopMotors();
+  bool haltMotors();
+  bool setMode(int mode);
+  bool setAccelerationRate(int rate);
   bool resetEncoders();
-  void enableSpeedRegulation();
-  void disableSpeedRegulation();
-  void enableTimeout();
-  void disableTimeout();
-  void changeAddress(int newAddress);
+  std::pair<int, int> readEncoders();
+ 
+  bool writeSpeed(int left,int right);
+  
+ 
   //-------------
 private:
   std::mutex lock;
-  int readEncoderArray(int reg);
-  int readRegisterByte(int reg);
-  void setMotorSpeed(int motor, int speed);
+  int readByte(int reg);
+  std::pair<int, int> readTwoBytes(int reg);
   bool sendCommand(int command,int reg);
 
   int m_fd = -1;
   int address = 0x58;
   int m_software_version = 0;
-  int m_encoder_1_ticks = 0;
-  int m_encoder_2_ticks = 0;
-  
+
   const char * m_i2c_file      = nullptr;
   
   static const int SPD1		            = 0x00;  // speed to first motor
@@ -102,7 +91,7 @@ private:
   static const int ENABLE_SPEED_REG   = 0x31; //
   static const int DISABLE_TIMEOUT    = 0x32; //  
   static const int ENABLE_TIMEOUT     = 0x33; //
-  static const int STOP_SPEED	      	= 0x80;  // 0 velocity  
+  static const int STOP_SPEED	      	= 0x00;  // 0 velocity  0x80 = 128
 };
 
 #endif

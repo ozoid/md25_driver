@@ -9,7 +9,7 @@ bool md25_driver::setup(){
    *
    * (hopefully it sticks around).
    */
-  int m_buff[BUF_LEN] = {};
+  uint8_t m_buff[BUF_LEN] = {};
   m_buff[0] = SW_VER;  /* get software version */
   if ((m_fd = open(m_i2c_file, O_RDWR)) < 0) {
     ROS_ERROR("Failed to open i2c file");
@@ -26,9 +26,89 @@ bool md25_driver::setup(){
     return false;
   }
 
-  ROS_INFO("MD25 Motors initialized with software verison '%u'", m_buff[0]);
+  ROS_INFO("MD25 Motors initialized with software version '%u'", m_buff[0]);
   m_software_version = static_cast<int>(m_buff[0]);
-  return resetEncoders();
+  return true;
+}
+//---------------------------------------------
+int md25_driver::getSoftwareVersion()
+{
+   return readByte(SW_VER);
+}
+int md25_driver::getBatteryVolts()
+{
+   return readByte(VOLT);
+}
+int md25_driver::getAccelerationRate()
+{
+   return readByte(ACC_RATE);
+}
+int md25_driver::getMode()
+{
+   return readByte(MODE);
+}
+std::pair<int, int> md25_driver::getMotorsSpeed()
+{
+   return readTwoBytes(SPD1);
+}
+std::pair<int, int> md25_driver::getMotorsCurrent()
+{
+   return readTwoBytes(I1);
+}
+bool md25_driver::enableSpeedRegulation()
+{
+  return sendCommand(ENABLE_SPEED_REG,CMD);
+}
+bool md25_driver::disableSpeedRegulation()
+{
+  return sendCommand(DISABLE_SPEED_REG,CMD);
+}
+bool md25_driver::enableTimeout()
+{
+  return sendCommand(ENABLE_TIMEOUT,CMD);
+}
+bool md25_driver::disableTimeout()
+{
+  return sendCommand(DISABLE_TIMEOUT,CMD);
+}
+bool md25_driver::setMotorsSpeed(int speed1,int speed2)
+{
+  return writeSpeed(speed1,speed2);
+}
+
+bool md25_driver::stopMotors()
+{
+  return writeSpeed(STOP_SPEED,STOP_SPEED);
+}
+bool md25_driver::haltMotors(){
+  uint8_t m_buff[BUF_LEN] = {0};
+  ROS_INFO("HALT received, stopping motors");
+  m_buff[0] = SPD1;
+  m_buff[1] = STOP_SPEED;  /* this speed stops the motors */
+
+  if (write(m_fd, m_buff, 2) != 2) {
+    ROS_ERROR("failed to stop robot, better go catch it!");
+    return false;
+  }
+
+  m_buff[0] = SPD2;
+  m_buff[1] = STOP_SPEED;
+
+  if (write(m_fd, m_buff, 2) != 2) {
+    ROS_ERROR("failed to stop robot, better go catch it!");
+    return false;  
+  }
+
+  ROS_INFO("motors stopped");
+  return true;
+}
+bool md25_driver::setMode(int mode)
+{
+  return sendCommand(mode,MODE);
+}
+bool md25_driver::setAccelerationRate(int rate)
+{
+  return sendCommand(rate,ACC_RATE);
 }
 //---------------------------------------------
 bool md25_driver::resetEncoders(){
@@ -39,126 +119,11 @@ bool md25_driver::resetEncoders(){
   }
   return true;
 }
-//---------------------------------------------
-void md25_driver::haltMotors(){
-  int m_buff[BUF_LEN] = {0};
-  ROS_INFO("HALT received, stopping motors");
-  m_buff[0] = SPD1;
-  m_buff[1] = 128;  /* this speed stops the motors */
-
-  if (write(m_fd, m_buff, 2) != 2) {
-    ROS_ERROR("failed to stop robot, better go catch it!");
-    return;
-  }
-
-  m_buff[0] = SPD2;
-  m_buff[1] = 128;
-
-  if (write(m_fd, m_buff, 2) != 2) {
-    ROS_ERROR("failed to stop robot, better go catch it!");
-    return;  
-  }
-
-  ROS_INFO("motors stopped");
-}
-//----------------------------------------------
-int md25_driver::getEncoder1()
-{
-   return readEncoderArray(ENC1);
-}
-int md25_driver::getEncoder2()
-{
-   return readEncoderArray(ENC2);
-}
-int md25_driver::getSoftwareVersion()
-{
-   return readRegisterByte(SW_VER);
-}
-int md25_driver::getBatteryVolts()
-{
-   return readRegisterByte(VOLT);
-}
-int md25_driver::getAccelerationRate()
-{
-   return readRegisterByte(ACC_RATE);
-}
-int md25_driver::getMotor1Speed()
-{
-   return readRegisterByte(SPD1);
-}
-int md25_driver::getMotor2Speed()
-{
-   return readRegisterByte(SPD2);
-}
-int md25_driver::getMotor1Current()
-{
-   return readRegisterByte(I1);
-}
-int md25_driver::getMotor2Current()
-{
-   return readRegisterByte(I2);
-}
-int md25_driver::getMode()
-{
-   return readRegisterByte(MODE);
-}
-void md25_driver::enableSpeedRegulation()
-{
-   sendCommand(ENABLE_SPEED_REG,CMD);
-}
-void md25_driver::disableSpeedRegulation()
-{
-   sendCommand(DISABLE_SPEED_REG,CMD);
-}
-void md25_driver::enableTimeout()
-{
-   sendCommand(ENABLE_TIMEOUT,CMD);
-}
-void md25_driver::disableTimeout()
-{
-   sendCommand(DISABLE_TIMEOUT,CMD);
-}
-void md25_driver::setMotorsSpeed(int speed)
-{
-   setMotor1Speed(speed);
-   setMotor2Speed(speed);
-}
-void md25_driver::setMotorSpeed(int motor, int speed)
-{
-   sendCommand(speed,motor); //motor = 0|1 left|right
-}
-void md25_driver::setMotor1Speed(int speed)
-{
-   setMotorSpeed(SPD1, speed);
-}
-void md25_driver::setMotor2Speed(int speed)
-{
-   setMotorSpeed(SPD2, speed);
-}
-void md25_driver::stopMotor1()
-{
-   setMotor1Speed(STOP_SPEED);
-}
-void md25_driver::stopMotor2()
-{
-   setMotor2Speed(STOP_SPEED);
-}
-void md25_driver::stopMotors()
-{
-   stopMotor1();
-   stopMotor2();
-}
-void md25_driver::setMode(int mode)
-{
-   sendCommand(mode,MODE);
-}
-void md25_driver::setAccelerationRate(int rate)
-{
-   sendCommand(rate,ACC_RATE);
-}
 //----------------------------------------------------
 std::pair<int, int> md25_driver::readEncoders(){
-  int m_buff[BUF_LEN] = {0};
+  uint8_t m_buff[BUF_LEN] = {0};
+  int m_encoder_1_ticks = 0;
+  int m_encoder_2_ticks = 0;
   /* encoder 1 is stored in registers 2 - 5 */
   m_buff[0] = ENC1;
   lock.lock();
@@ -182,12 +147,7 @@ std::pair<int, int> md25_driver::readEncoders(){
 }
 //-------------------------------------------------------
 bool md25_driver::writeSpeed(int left,int right){
-  if(left>127)left=127;
-  if(right>127)right=127;
-  if(left<-127)left=-127;
-  if(right<-127)right=-127;
-
-  int m_buff[BUF_LEN] = {0};
+  uint8_t m_buff[BUF_LEN] = {0};
   m_buff[0] = SPD1;
   m_buff[1] = left;
   m_buff[2] = right;
@@ -197,55 +157,50 @@ bool md25_driver::writeSpeed(int left,int right){
     lock.unlock();
     return false;  
   }
-  // m_buff[0] = SPD2;
-  // m_buff[1] = right;
-  // if (write(m_fd, m_buff, 2) != 2) {
-  //   ROS_ERROR("failed to send right speed command!");
-  //   lock.unlock();
-  //   return false;  
-  // }
   lock.unlock();
   return true;
 }
 //-------------------------------------------------------
-int md25_driver::readEncoderArray(int reg){
-  int m_buff[BUF_LEN] = {0};
+//-------------------------------------------------
+ std::pair<int, int> md25_driver::readTwoBytes(int reg){
+  uint8_t m_buff[BUF_LEN] = {0};
   m_buff[0] = reg;
   lock.lock();
   if (write(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("Could not write to i2c");
     lock.unlock();
-    return false;
-  } else if (read(m_fd, m_buff, 4) != 4) {
+    return std::make_pair(0 ,0);
+  } else if (read(m_fd, m_buff, 2) != 2) {
     ROS_ERROR("Could not read register value");
     lock.unlock();
-    return false;
+    return std::make_pair(0 ,0);
   }
   lock.unlock();
-  return (m_buff[0] << 24) + (m_buff[1] << 16) + (m_buff[2] << 8) + m_buff[3];
+  return std::make_pair(m_buff[0] ,m_buff[1]); 
 }
+//-------------------------------------------------
 
-int md25_driver::readRegisterByte(int reg){
-  int m_buff[BUF_LEN] = {0};
+int md25_driver::readByte(int reg){
+  uint8_t m_buff[BUF_LEN] = {0};
   m_buff[0] = reg;
   lock.lock();
   if (write(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("Could not write to i2c");
     lock.unlock();
-    return false;
+    return 0;
   } else if (read(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("Could not read register value");
     lock.unlock();
-    return false;
+    return 0;
   }
   lock.unlock();
   return m_buff[0];
 }
 
-bool md25_driver::sendCommand(int command,int reg){
-  int m_buff[BUF_LEN] = {0};
+bool md25_driver::sendCommand(int value,int reg){
+  uint8_t m_buff[BUF_LEN] = {0};
   m_buff[0] = reg;
-  m_buff[1] = command;
+  m_buff[1] = value;
   lock.lock();
   if (write(m_fd, m_buff, 2) != 2) {
     ROS_ERROR("failed to send command!");

@@ -1,15 +1,28 @@
 # md25_driver
-A ROS driver for the md25 motor controller - v0.7.0
+A ROS driver for the md25 motor controller - v0.9.0
+
+
 
 Parameters:
 * publish_motor_status_frequency = 1.0
 * publish_odom_frequency = 10.0
+* publish_current_speed_frequency = 0.0
+* publish_motor_encoders_frequency = 0.0
+* pid_frequency = 20.0
+* enable_twist = true
+* enable_pid = true
+* motor_mode = 1
+* pid_p = 2.0
+* pid_i = 0.5
+* pid_d = 0.0
+* pid_o = 20.0
+* debug_mode = false
 
 Subscriptions:
 * cmd_vel - geometry_msgs::Twist
 
 Advertisements:
-* motor_status - vector<diagnostic_msgs::KeyValue>[3] - motor current left/right, battery volts
+* motor_status - std_msgs::ByteMultiArray - motor current left/right, battery volts, motor speed left/right
 * odom - nav_msgs::Odometry
 * tf - geometry_msgs::TransformStamped
 
