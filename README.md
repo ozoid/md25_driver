@@ -1,7 +1,5 @@
 # md25_driver
-A ROS driver for the md25 motor controller - v0.9.0
-
-
+A ROS driver for the md25 motor controller with PID control - v0.9.2
 
 Parameters:
 * publish_motor_status_frequency = 1.0
@@ -15,7 +13,7 @@ Parameters:
 * pid_p = 2.0
 * pid_i = 0.5
 * pid_d = 0.0
-* pid_o = 20.0
+* pid_o = 100.0
 * debug_mode = false
 
 Subscriptions:
