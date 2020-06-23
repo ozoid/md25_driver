@@ -49,7 +49,6 @@ private:
 
   tf::TransformBroadcaster transform_broadcaster_;
   //-----------------------------------------------
-  const long MAXPIDOUTPUT      = 127;
   const double PI = 3.14159265358979323846;
   double publish_current_speed_frequency_;
   double publish_motor_status_frequency_;
@@ -66,49 +65,72 @@ private:
   double wheelDiameter = 0.210;
   double wheelTrack = 0.345;
   double cpr = 1080;
-  double ticksPerMeter = cpr / (PI * wheelDiameter);
+  double wheelCircum =  PI * wheelDiameter; //0.65973
+  double ticksPerMeter = (cpr / wheelCircum); //1637.0222
+  
   int motor_mode_ = 1;
+  int max_speed_ = 100;
   int moving = 0;
   //double DistancePerCount = (3.14159265 * 0.13) / cpr;
 //-------------------------------------------------
 double Kp = 2.0;
 double Ki = 0.5;
 double Kd = 0.0;
-double Ko = 20.0;
+double Ko = 10.0;
 
 //-------------------------------------------------
 /* Setpoint Info For a Motor */
 typedef struct {
-  double TargetSpeed=0.0;            // target speed in m/s
-  double TargetTicksPerFrame=0.0;    // target speed in ticks per frame
-  long Encoder=0;                  // encoder count
-  long PrevEnc=0;                  // last encoder count
-  int PrevErr=0;                   // last error
-  int Ierror=0;                    // integrated error
-  int output=0;                    // last motor setting
+  double TargetSpeed;          // target speed in m/s
+  double TargetTicksPerFrame;  // target speed in ticks per frame
+  long Encoder;                  // encoder count
+  long PrevEnc;                  // last encoder count
+  long PrevErr = 0;                   // last error
+  //int Ierror = 0;                    // integrated error
+  int output;                    // last motor setting
+   /*
+  * Using previous input (PrevInput) instead of PrevError to avoid derivative kick,
+  * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-derivative-kick/
+  */
+  int PrevInput;                // last input
+  /*
+  * Using integrated term (ITerm) instead of integrated error (Ierror),
+  * to allow tuning changes,
+  * see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
+  */
+  int ITerm;                    //integrated term
 }
 SetPointInfo;
 SetPointInfo leftPID, rightPID;
+//-------------------------------------------------
+/* Odometry Data */
 typedef struct {
-  ros::Time lastOdom;            // last ROS time odometry was calculated
-  ros::Time encoderStamp;	 // last ROS time encoders were read
+  ros::Time lastOdom;                // last ROS time odometry was calculated
+  ros::Time encoderStamp;	           // last ROS time encoders were read
   unsigned long encoderTime;     // most recent millis() time encoders were read
   unsigned long lastEncoderTime; // last millis() time encoders were read
   unsigned long lastOdomTime;    // last millis() time odometry was calculated
   long prevLeftEnc;              // last left encoder reading used for odometry
   long prevRightEnc;             // last right encoder reading used for odometry
-  float linearX;	         // total linear x distance traveled
-  float linearY;	         // total linear y distance traveled
-  float angularZ;		 // total angular distance traveled
+  float linearX = 0.0;	             // total linear x distance traveled
+  float linearY = 0.0;	             // total linear y distance traveled
+  float angularZ = 0.0;		           // total angular distance traveled
 }
 OdomInfo;
 OdomInfo odomInfo;
+//-------------------------------------------------
+/* Current Pose */
+typedef struct {
+  float x = 0.0;
+  float y = 0.0;
+  float theta = 0.0;
+  float xVel = 0.0;
+  float yVel = 0.0;
+  float thetaVel = 0.0;
+} Pose;
+Pose pose;
 //---------------------------------------
 public:
-  double RobotX = 0.0;
-  double RobotY = 0.0;
-  double RobotTH = 0.0;
-  //ros::Time last_time;
   std::unique_ptr<md25_driver> motor;
 //---------------------------------------
  MD25MotorDriverROSWrapper(ros::NodeHandle *nh){
@@ -149,15 +171,16 @@ public:
     }
     if(enable_odom_){
       odom_timer_ = nh->createTimer(ros::Duration(1.0 / publish_odom_frequency_),&MD25MotorDriverROSWrapper::publishOdom,this);
-      odom_publisher_ = nh->advertise<nav_msgs::Odometry>("odom",1);
+      odom_publisher_ = nh->advertise<nav_msgs::Odometry>("odom",10);
     }
     if(enable_pid_){
       pid_timer_ = nh->createTimer(ros::Duration(1.0/pid_frequency_), &MD25MotorDriverROSWrapper::UpdatePID,this);
     }
-     stop_motor_server_ = nh->advertiseService("md25_driver/stop_motor",&MD25MotorDriverROSWrapper::callbackStop, this);
-     reset_encoders_server_ = nh->advertiseService("md25_driver/reset_encoders",&MD25MotorDriverROSWrapper::callbackReset,this);
+     stop_motor_server_ = nh->advertiseService("stop_motors",&MD25MotorDriverROSWrapper::callbackStop, this);
+     reset_encoders_server_ = nh->advertiseService("reset_encoders",&MD25MotorDriverROSWrapper::callbackReset,this);
     }
 //---------------------------------------
+/* Set Incoming Parameters to Variables or Defaults */
 void setParams(){
  if(!ros::param::get("~publish_current_speed_frequency",publish_current_speed_frequency_)){
       publish_current_speed_frequency_ = 0.0;
@@ -173,6 +196,9 @@ void setParams(){
     }
     if(!ros::param::get("~motor_mode",motor_mode_)){
       motor_mode_ = 1;
+    }
+     if(!ros::param::get("~max_speed",max_speed_)){
+      max_speed_ = 100;
     }
     if(!ros::param::get("~pid_p",Kp)){
       Kp = 2.0;
@@ -222,6 +248,7 @@ void setParams(){
     ROS_INFO("Parameters Set");
 }
 //---------------------------------------
+/* Handle reset_encoders service message */
 bool callbackReset(std_srvs::Trigger::Request &req, std_srvs::TriggerResponse &res){
     motor->resetEncoders();
     res.success = true;
@@ -229,6 +256,7 @@ bool callbackReset(std_srvs::Trigger::Request &req, std_srvs::TriggerResponse &r
     return true;
  }
 //---------------------------------------
+/* Handle stop_motors service message */
 bool callbackStop(std_srvs::Trigger::Request &req, std_srvs::TriggerResponse &res){
     stop();
     res.success = true;
@@ -236,6 +264,7 @@ bool callbackStop(std_srvs::Trigger::Request &req, std_srvs::TriggerResponse &re
     return true;
   }
 //---------------------------------------
+/* optional publish current_speed (motor values) */ 
 void publishCurrentSpeed(const ros::TimerEvent &event){
   std::pair<int,int> speeds = motor->getMotorsSpeed();
   std_msgs::ByteMultiArray barry;
@@ -245,6 +274,7 @@ void publishCurrentSpeed(const ros::TimerEvent &event){
   current_speed_publisher_.publish(barry);
  }
 //---------------------------------------
+/* optional publish motor_encoders (raw values) */
 void publishEncoders(const ros::TimerEvent &event){
   std::pair<int,int> ticks = motor->readEncoders();
   std_msgs::ByteMultiArray barry;
@@ -254,6 +284,7 @@ void publishEncoders(const ros::TimerEvent &event){
   motor_encoders_publisher_.publish(barry);
  }
 //---------------------------------------
+/* optional publish motor currents and battery voltage */
 void publishMotorStatus(const ros::TimerEvent &event){
   std::pair<int,int> currents = motor->getMotorsCurrent();
   std_msgs::ByteMultiArray barry;
@@ -263,45 +294,66 @@ void publishMotorStatus(const ros::TimerEvent &event){
   motor_status_publisher_.publish(barry);
  }
 //---------------------------------------
+/* Direct Stop Both Motors*/
 void stop(){
     motor->stopMotors();
  }
 //---------------------------------------
- void shutdown(){
+/* Shutdown routine */
+void shutdown(){
    stop();
  }
 //---------------------------------------
+/* Calculate Pose from Left/Right Encoders and Velocities */
+void calculatePose(long dL,long dR,double dt){
+  double leftTravel = dL / ticksPerMeter;
+  double rightTravel = dR / ticksPerMeter;
+  double deltaTravel = (rightTravel + leftTravel)/2;
+  double deltaTheta = (rightTravel - leftTravel)/wheelTrack;
+  double deltaX = 0.0;
+  double deltaY = 0.0;
+ if(rightTravel == leftTravel){
+  deltaX = leftTravel * cos(pose.theta);
+  deltaY = leftTravel * sin(pose.theta);  
+ }else{
+  double radius = deltaTravel / deltaTheta;
+  double iccX = pose.x - radius * sin(pose.theta);
+  double iccY = pose.y + radius * cos(pose.theta);
+  deltaX = cos(deltaTheta) * (pose.x - iccX) - sin(deltaTheta) * (pose.y - iccY) + iccX - pose.x;
+  deltaY = sin(deltaTheta) * (pose.x - iccX) + cos(deltaTheta) * (pose.y - iccY) + iccY - pose.y;
+ }
+ pose.x += deltaX;
+ pose.y += deltaY;
+ pose.theta = std::remainder((pose.theta + deltaTheta) ,2.0 * PI);
+ pose.yVel = 0.0;
+ if(dt == 0){
+  pose.xVel = 0.0;
+  pose.thetaVel = 0.0;
+ }else{
+  pose.xVel = deltaTravel/dt;
+  pose.thetaVel = deltaTheta/dt;
+ }
+}
+//---------------------------------------
+/* Publish Odometry and tf */
 void publishOdom(const ros::TimerEvent &event){
-  //ros::Time current_time = leftPID.EncoderStamp;//ros::Time::now();
   double dt = (odomInfo.encoderTime - odomInfo.lastEncoderTime);
   odomInfo.lastEncoderTime = odomInfo.encoderTime;
-  //double dt = (current_time - last_time).toSec();
   long deltaLeft = leftPID.Encoder - odomInfo.prevLeftEnc;
   long deltaRight = rightPID.Encoder - odomInfo.prevRightEnc;
   odomInfo.prevLeftEnc = leftPID.Encoder;
   odomInfo.prevRightEnc = rightPID.Encoder;
+  calculatePose(deltaLeft,deltaRight,dt);
 
-  double v_left = (deltaLeft * ticksPerMeter) / dt;
-  double v_right = (deltaRight * ticksPerMeter) / dt;
-  double v = ((v_right + v_left) / 2); //directional velocity
-  double w = ((v_right - v_left)/wheelTrack); //angularvelocity
-  double delta_x = (v * cos(w)) * dt;
-  double delta_y = (v * sin(w)) * dt;
-  double delta_th = w * dt;
-
-  RobotX += delta_x;
-  RobotY += delta_y;
-  RobotTH += delta_th;
-
-  geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(RobotTH);
+  geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(pose.theta);
 
   geometry_msgs::TransformStamped odom_trans;
   odom_trans.header.stamp = odomInfo.encoderStamp;
   odom_trans.header.frame_id = "odom";
   odom_trans.child_frame_id = "base_link";
 
-  odom_trans.transform.translation.x = RobotX;
-  odom_trans.transform.translation.y = RobotY;
+  odom_trans.transform.translation.x = pose.x;
+  odom_trans.transform.translation.y = pose.y;
   odom_trans.transform.translation.z = 0.0;
   odom_trans.transform.rotation = odom_quat;
 
@@ -314,20 +366,24 @@ void publishOdom(const ros::TimerEvent &event){
   odom.header.frame_id = "odom";
 
   //set the position
-  odom.pose.pose.position.x = RobotX;
-  odom.pose.pose.position.y = RobotY;
+  odom.pose.pose.position.x = pose.x;
+  odom.pose.pose.position.y = pose.y;
   odom.pose.pose.position.z = 0.0;
   odom.pose.pose.orientation = odom_quat;
 
    //set the velocity
   odom.child_frame_id = "base_link";
-  odom.twist.twist.linear.x = v;
-  odom.twist.twist.linear.y = 0;
-  odom.twist.twist.angular.z = w;
+  odom.twist.twist.linear.x = pose.xVel;
+  odom.twist.twist.linear.y = pose.yVel;
+  odom.twist.twist.linear.z = 0.0;
+  odom.twist.twist.angular.x = 0.0;
+  odom.twist.twist.angular.y = 0.0;
+  odom.twist.twist.angular.z = pose.thetaVel;
 
   odom_publisher_.publish(odom);
 }
 //--------------------------------------------------------
+/* Incoming cmd_vel message to Motor commands */
 void twistToMotors(const geometry_msgs::Twist &msg){
   double x = msg.linear.x;
   double th = msg.angular.z;
@@ -341,8 +397,8 @@ void twistToMotors(const geometry_msgs::Twist &msg){
   double velDiff = (wheelTrack * th) /2;
   spd_left = - ((x + velDiff) / (wheelDiameter/2.0));
   spd_right = - ((x - velDiff) / (wheelDiameter/2.0));
-  double RPMleft = ((60 * spd_left) / (wheelDiameter * PI));
-  double RPMright = ((60 * spd_right) / (wheelDiameter * PI));
+  //double RPMleft = ((60 * spd_left) / (wheelDiameter * PI));
+  //double RPMright = ((60 * spd_right) / (wheelDiameter * PI));
   
   if(enable_pid_){
     /* Set the target speeds in meters per second */
@@ -363,33 +419,50 @@ void twistToMotors(const geometry_msgs::Twist &msg){
 void doPID(SetPointInfo * p) {
   long Perror;
   long output;
-  Perror = p->TargetTicksPerFrame - (p->Encoder - p->PrevEnc);
+  int input;
+  //Perror = p->TargetTicksPerFrame - (p->Encoder - p->PrevEnc);
+  input = p->Encoder - p->PrevEnc;
+  Perror = p->TargetTicksPerFrame - input;
   // Derivative error is the delta Perror
-  output = (Kp * Perror + Kd * (Perror - p->PrevErr) + Ki * p->Ierror) / Ko;
-  p->PrevErr = Perror;
-  p->PrevEnc = p->Encoder;
-  output += p->output;
-  if (output >= MAXPIDOUTPUT)
-    output = MAXPIDOUTPUT;
-  else if (output <= -MAXPIDOUTPUT)
-    output = -MAXPIDOUTPUT;
-  else
-    p->Ierror += Perror;
-  p->output = output;
+  output = (Kp * Perror - Kd * (input - p->PrevInput) + p->ITerm)/Ko;
 
+  //output = (Kp * Perror + Kd * (Perror - p->PrevErr) + Ki * p->Ierror) / Ko;
+  p->PrevErr = Perror;
+  
+  p->PrevEnc = p->Encoder; 
+  output += p->output;
+  if (output >= max_speed_)
+    output = max_speed_;
+  else if (output <= -max_speed_)
+    output = -max_speed_;
+  else
+    p->ITerm += Ki * Perror;
+    //p->Ierror += Perror;
+    /*
+     * allow turning changes, see http://brettbeauregard.com/blog/2011/04/improving-the-beginner%E2%80%99s-pid-tuning-changes/
+     */
+    
+  p->output = output;
+  p->PrevInput = input;
 }
+//---------------------------------------
+/* Reset PID Values and variables */
 void clearPID(){
   moving = 0;
   leftPID.PrevErr = 0;
-  leftPID.Ierror = 0;
+  //leftPID.Ierror = 0;
   leftPID.output = 0;
   leftPID.TargetTicksPerFrame = 0.0;
   leftPID.TargetSpeed = 0.0;
+  leftPID.PrevInput = 0;
+  leftPID.ITerm = 0;
   rightPID.PrevErr = 0;
-  rightPID.Ierror = 0;
+  //rightPID.Ierror = 0;
   rightPID.output = 0;
   rightPID.TargetTicksPerFrame = 0.0;
   rightPID.TargetSpeed = 0.0;
+  rightPID.PrevInput = 0;
+  rightPID.ITerm = 0;
 }
 //---------------------------------------------------------------
 /* Read the encoder values and call the PID routine */
@@ -408,7 +481,9 @@ void UpdatePID(const ros::TimerEvent &event) {
   odomInfo.encoderStamp = ros::Time::now();
 
   if (!moving){
-    clearPID();
+    if(leftPID.PrevInput !=0 || rightPID.PrevInput !=0){
+      clearPID();
+    }
     return;
   }
   /* Compute PID update for each motor */
@@ -417,18 +492,23 @@ void UpdatePID(const ros::TimerEvent &event) {
   /* Set the motor speeds accordingly */
   motor->writeSpeed(leftPID.output, rightPID.output);
   if(debug_mode_){
-    ROS_INFO("updatePID: dL=%ld, dR=%ld - PIDL:%d PIDR:%d", deltaLeft, deltaRight,leftPID.output,rightPID.output);
+    ROS_INFO("updatePID: dL=%ld, dR=%ld - PIDL:%d PIDR:%d - EL:%ld ER:%ld", deltaLeft, deltaRight,leftPID.output,rightPID.output,leftPID.PrevErr,rightPID.PrevErr);
   }
 }
 //---------------------------------------
 int SpeedToTicks(double v) {
-  return int(v * cpr / (pid_frequency_ * PI * wheelDiameter));
+  //return int(v * cpr / (pid_frequency_ * PI * wheelDiameter));
+  return (int)(v * cpr / (pid_frequency_ * PI * wheelDiameter));
 }
+//---------------------------------------
+/* return current time in milliseconds */
 long Millis(){
   return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch()).count();
  }
-};
+
+}; // end class
 //---------------------------------------
+/* Main Function */
 int main(int argc,char **argv){
   ros::init(argc,argv,"md25_driver");
   ros::NodeHandle nh;
@@ -436,7 +516,7 @@ int main(int argc,char **argv){
   spinner.start();
   MD25MotorDriverROSWrapper motor_wrapper(&nh);
 
-  ROS_INFO("MD25 Motor Driver v0.9.2 Started");
+  ROS_INFO("MD25 Motor Driver v0.9.5 Started");
   ros::waitForShutdown();
   motor_wrapper.shutdown();
   return 0;

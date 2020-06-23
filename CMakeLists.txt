@@ -27,7 +27,7 @@ add_executable(${PROJECT_NAME}_node
 
 catkin_package(
   CATKIN_DEPENDS roscpp
-  DEPENDS system_lib
+ # DEPENDS system_lib
 )
 
 #add_message_files(
