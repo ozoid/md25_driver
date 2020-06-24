@@ -5,7 +5,7 @@
   <description>MD25 ROS Driver.</description>
   <maintainer email="steve@ozoid.com">Steve Lawrence</maintainer>
   <author email="steve@ozoid.com">Steve Lawrence</author>
-  <license>Apache-2.0</license>
+  <license>MIT</license>
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>tf</build_depend>
