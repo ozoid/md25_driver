@@ -58,7 +58,7 @@ public:
   bool setAccelerationRate(int rate);
   bool resetEncoders();
   std::pair<int, int> readEncoders();
- 
+  std::pair<int, int> readEncoders2();
   bool writeSpeed(int left,int right);
   
  
@@ -68,11 +68,13 @@ private:
   int readByte(int reg);
   std::pair<int, int> readTwoBytes(int reg);
   bool sendCommand(int command,int reg);
-
+  int readEncoder(int LR);
+  bool lastReadEncoders = false;
   int m_fd = -1;
   int address = 0x58;
   int m_software_version = 0;
-
+  long m_encoder_1_ticks = 0;
+  long m_encoder_2_ticks = 0;
   const char * m_i2c_file      = nullptr;
   
   static const int SPD1		            = 0x00;  // speed to first motor
