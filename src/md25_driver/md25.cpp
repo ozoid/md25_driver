@@ -36,51 +36,62 @@ int md25_driver::getSoftwareVersion()
 {
    return readByte(SW_VER);
 }
+//---------------------------------------------
 int md25_driver::getBatteryVolts()
 {
    return readByte(VOLT);
 }
+//---------------------------------------------
 int md25_driver::getAccelerationRate()
 {
    return readByte(ACC_RATE);
 }
+//---------------------------------------------
 int md25_driver::getMode()
 {
    return readByte(MODE);
 }
+//---------------------------------------------
 std::pair<int, int> md25_driver::getMotorsSpeed()
 {
    return readTwoBytes(SPD1);
 }
+//---------------------------------------------
 std::pair<int, int> md25_driver::getMotorsCurrent()
 {
    return readTwoBytes(I1);
 }
+//---------------------------------------------
 bool md25_driver::enableSpeedRegulation()
 {
   return sendCommand(ENABLE_SPEED_REG,CMD);
 }
+//---------------------------------------------
 bool md25_driver::disableSpeedRegulation()
 {
   return sendCommand(DISABLE_SPEED_REG,CMD);
 }
+//---------------------------------------------
 bool md25_driver::enableTimeout()
 {
   return sendCommand(ENABLE_TIMEOUT,CMD);
 }
+//---------------------------------------------
 bool md25_driver::disableTimeout()
 {
   return sendCommand(DISABLE_TIMEOUT,CMD);
 }
+//---------------------------------------------
 bool md25_driver::setMotorsSpeed(int speed1,int speed2)
 {
   return writeSpeed(speed1,speed2);
 }
-
+//---------------------------------------------
 bool md25_driver::stopMotors()
 {
   return writeSpeed(STOP_SPEED,STOP_SPEED);
 }
+//---------------------------------------------
 bool md25_driver::haltMotors(){
   uint8_t m_buff[BUF_LEN] = {0};
   lastReadEncoders = false;
@@ -99,10 +110,12 @@ bool md25_driver::haltMotors(){
   }
   return true;
 }
+//---------------------------------------------
 bool md25_driver::setMode(int mode)
 {
   return sendCommand(mode,MODE);
 }
+//---------------------------------------------
 bool md25_driver::setAccelerationRate(int rate)
 {
   return sendCommand(rate,ACC_RATE);

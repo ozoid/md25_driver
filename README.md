@@ -1,5 +1,5 @@
 # md25_driver
-A ROS driver for the Devantech MD25 motor controller with PID control - v0.9.5
+A ROS driver for the Devantech MD25 motor controller with PID control - v0.9.8
 
 Parameters:
 * publish_motor_status_frequency = 1.0

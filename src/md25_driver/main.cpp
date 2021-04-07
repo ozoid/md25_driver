@@ -65,7 +65,6 @@ private:
   int max_speed_ = 100;
   bool moving = false;
   int acceleration_rate = 3;
-  //double DistancePerCount = (3.14159265 * 0.13) / cpr;
 //-------------------------------------------------
 double Kp = 2.0;
 double Ki = 0.5;
@@ -511,7 +510,7 @@ int main(int argc,char **argv){
   ros::AsyncSpinner spinner(4);
   spinner.start();
   MD25MotorDriverROSWrapper motor_wrapper(&nh);
-  ROS_INFO("MD25 Motor Driver v0.9.5 Started");
+  ROS_INFO("MD25 Motor Driver v0.9.8 Started");
   ros::waitForShutdown();
   motor_wrapper.shutdown();
   return 0;
