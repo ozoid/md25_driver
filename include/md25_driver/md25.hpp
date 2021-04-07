@@ -58,7 +58,6 @@ public:
   bool setAccelerationRate(int rate);
   bool resetEncoders();
   std::pair<int, int> readEncoders();
-  std::pair<int, int> readEncoders2();
   bool writeSpeed(int left,int right);
   
  

@@ -75,8 +75,7 @@ double Ko = 10.0;
 //-------------------------------------------------
 /* Setpoint Info For a Motor */
 typedef struct {
-  double TargetSpeed = 0.0;          // target speed in m/s
-  int TargetTicksPerFrame = 0;  // target speed in ticks per frame
+  double TargetTicksPerFrame = 0.0;  // target speed in ticks per frame
   long Encoder =0;                  // encoder count
   long PrevEnc =0;                  // last encoder count
   long PrevErr = 0;                   // last error
@@ -91,7 +90,6 @@ SetPointInfo leftPID, rightPID;
 typedef struct {
   ros::Time OdomStamp;                // last ROS time odometry was calculated
   ros::Time PrevOdomStamp;                // last ROS time odometry was calculated
-  //unsigned long OdomTime;     // most recent millis() time encoders were read
   long LeftEnc =0;              // last left encoder reading used for odometry
   long RightEnc =0;             // last right encoder reading used for odometry
 }
@@ -128,9 +126,7 @@ public:
     }else{
       ROS_INFO("MD25 Motor Mode set to %d",motor_mode_);
     }
-    bool resetted  = motor->resetEncoders();
-    ros::Duration(0.5).sleep();
-    if(!clearPID()){
+    if(!resetAll()){
       ROS_ERROR("failed to reset encoders!");
     }
     ros::Duration(0.5).sleep();
@@ -265,8 +261,7 @@ bool callbackStop(std_srvs::Trigger::Request &req, std_srvs::TriggerResponse &re
 void publishCurrentSpeed(const ros::TimerEvent &event){
   int speed_l;
   int speed_r;
-  std::tie(speed_l, speed_r) = motor->readEncoders();
-  //std::pair<int,int> speeds = motor->getMotorsSpeed();
+  std::tie(speed_l, speed_r) = motor->getMotorsSpeed();
   std_msgs::ByteMultiArray barry;
   barry.data.clear();
   barry.data.push_back(speed_l);
@@ -292,7 +287,6 @@ void publishMotorStatus(const ros::TimerEvent &event){
   int curr_l;
   int curr_r;
   std::tie(curr_l, curr_r) = motor->readEncoders();
-  //std::pair<int,int> currents = motor->getMotorsCurrent();
   std_msgs::ByteMultiArray barry;
   barry.data.clear();
   barry.data.push_back(curr_l);
@@ -311,7 +305,7 @@ void shutdown(){
  }
 //---------------------------------------
 /* Calculate Pose from Left/Right Encoders and Velocities */
-void calculatePose(long dL,long dR,double dt){
+void calculatePose(int dL,int dR,double dt){
   double leftTravel = dL / ticksPerMeter;
   double rightTravel = dR / ticksPerMeter;
   double deltaTravel = (rightTravel + leftTravel)/2;
@@ -343,13 +337,10 @@ void calculatePose(long dL,long dR,double dt){
 void publishOdom(const ros::TimerEvent &event){
   ros::Time currentTime = ros::Time::now();
   odomInfo.OdomStamp = currentTime;
-  long deltaLeft = leftPID.Encoder - odomInfo.LeftEnc;
-  long deltaRight = rightPID.Encoder - odomInfo.RightEnc;
+  int deltaLeft = leftPID.Encoder - odomInfo.LeftEnc;
+  int deltaRight = rightPID.Encoder - odomInfo.RightEnc;
   ros::Duration dt = odomInfo.OdomStamp - odomInfo.PrevOdomStamp;
   calculatePose(deltaLeft,deltaRight,dt.toSec());
-  if(debug_mode_){
-    ROS_INFO("Odom: dL=%f, dR=%f - dt:%f (x=%f, y=%f - t:%f)", deltaLeft, deltaRight,dt, pose.x, pose.y,pose.theta);
-  }
   odomInfo.PrevOdomStamp = currentTime;
   odomInfo.LeftEnc = leftPID.Encoder;
   odomInfo.RightEnc = rightPID.Encoder;
@@ -383,6 +374,10 @@ void publishOdom(const ros::TimerEvent &event){
   odom.twist.twist.angular.y = 0.0;
   odom.twist.twist.angular.z = pose.thetaVel;
   odom_publisher_.publish(odom);
+
+  if(debug_mode_){
+    ROS_INFO("Odom: dL=%d, dR=%d - dt:%f (x=%f, y=%f - t:%f)", deltaLeft, deltaRight,dt.toSec(), pose.x, pose.y,pose.theta);
+  }
 }
 //--------------------------------------------------------
 /* Incoming cmd_vel message to Motor commands */
@@ -390,7 +385,7 @@ void twistToMotors(const geometry_msgs::Twist &msg){
   double x = msg.linear.x;
   double th = msg.angular.z;
   double spd_left,spd_right;
-  if(x == 0 && th ==0){
+  if(x == 0.0 && th == 0.0){
     moving = false;
     motor->stopMotors();
     return;
@@ -399,22 +394,14 @@ void twistToMotors(const geometry_msgs::Twist &msg){
   double velDiff = (wheelTrack * th) /2;
   spd_left = ((x - velDiff) / (wheelDiameter/2.0));
   spd_right = ((x + velDiff) / (wheelDiameter/2.0));
-  //double RPMleft = ((60 * spd_left) / (wheelDiameter * PI));
-  //double RPMright = ((60 * spd_right) / (wheelDiameter * PI));
   
   if(enable_pid_){
-    /* Set the target speeds in meters per second */
-    leftPID.TargetSpeed = spd_left;
-    rightPID.TargetSpeed = spd_right;
-    /* Convert speeds to encoder ticks per frame */
     leftPID.TargetTicksPerFrame = SpeedToTicks(spd_left);
     rightPID.TargetTicksPerFrame = SpeedToTicks(spd_right);
-
-  if(debug_mode_){
-     ROS_INFO("twist: L=%f, R=%f - ttL:%d ttR:%d", spd_left, spd_right,leftPID.TargetTicksPerFrame,rightPID.TargetTicksPerFrame);
-   }
+    if(debug_mode_){
+      ROS_INFO("twist: L=%f, R=%f - ttL:%f ttR:%f", spd_left, spd_right,leftPID.TargetTicksPerFrame,rightPID.TargetTicksPerFrame);
+    }
   }
-
 }
 //------------------------------------------------------------------
 //https://github.com/KristofRobot/ros_arduino_bridge/commit/cf9d223969d1be2d6d954f8cbaa67a331c8a2793
@@ -439,79 +426,56 @@ void doPID(SetPointInfo * p) {
   p->PrevInput = input;
 }
 //---------------------------------------
-/* Reset PID Values and variables */
+/* Clear PID Values and variables */
 bool clearPID(){
   moving = false;
-  int ticks_l;
-  int ticks_r;
-  std::tie(ticks_l, ticks_r) = motor->readEncoders();
+  
   leftPID.PrevErr = 0;
   leftPID.output = 0;
-  leftPID.TargetTicksPerFrame = 0;
-  leftPID.TargetSpeed = 0.0;
+  leftPID.TargetTicksPerFrame = 0.0;
   leftPID.PrevInput = 0;
   leftPID.ITerm = 0;
-  leftPID.PrevEnc = ticks_l;  
-  leftPID.Encoder = ticks_l;
   rightPID.PrevErr = 0;
   rightPID.output = 0;
-  rightPID.TargetTicksPerFrame = 0;
-  rightPID.TargetSpeed = 0.0;
+  rightPID.TargetTicksPerFrame = 0.0;
   rightPID.PrevInput = 0;
   rightPID.ITerm = 0;
-  rightPID.PrevEnc = ticks_r;
-  rightPID.Encoder = ticks_r;
+  leftPID.PrevEnc = leftPID.Encoder;  
+  rightPID.PrevEnc = rightPID.Encoder;
+  odomInfo.LeftEnc = leftPID.Encoder;
+  odomInfo.RightEnc = rightPID.Encoder;
   if(debug_mode_){
-    ROS_INFO("PID Cleared");
+    ROS_INFO("MD25 PID Cleared");
   }
   return true;
+}
+//---------------------------------------
+bool resetAll(){
+  bool resetted  = motor->resetEncoders();
+  ROS_INFO("MD25 Reset ALL");
+  // int ticks_l;
+  // int ticks_r;
+  // ros::Duration(0.006).sleep();
+  // std::tie(ticks_l, ticks_r) = motor->readEncoders();
+  leftPID.Encoder = 0;
+  rightPID.Encoder = 0;
+  clearPID();
 }
 //---------------------------------------------------------------
 /* Read the encoder values and call the PID routine */
 void UpdatePID(const ros::TimerEvent &event) {
+  int ticks_l;
+  int ticks_r;
+  std::tie(ticks_l, ticks_r) = motor->readEncoders();
+  leftPID.Encoder = ticks_l;
+  rightPID.Encoder = ticks_r;
+  doPID(&leftPID);
+  doPID(&rightPID);
   if (!moving){
     if (leftPID.PrevInput != 0 || rightPID.PrevInput != 0) clearPID();
     return;
   }
-  int ticks_l;
-  int ticks_r;
-  std::tie(ticks_l, ticks_r) = motor->readEncoders();
-  //std::pair<int,int> ticks = motor->readEncoders();
-  //invert to fix my backwards shit
-  //ticks_l = -ticks_l;
-  //ticks_r = -ticks_r;
-  int dL = ticks_l - leftPID.PrevEnc;
-  int dR = ticks_r - rightPID.PrevEnc;
-
-  if(dL > 200 || dL < -200){
-    ROS_ERROR("UpdatePID: Left Encoder Jump > 200 %d",dL);
-  }
-   //else{
-    leftPID.Encoder = ticks_l;
-  // }
-  if(dR > 200 || dR < -200){
-    ROS_ERROR("UpdatePID: Right Encoder Jump > 200 %d",dR);
-  } //else{
-    rightPID.Encoder = ticks_r;
-  //}
-
-
   
-  
-  //odomInfo.OdomStamp = ros::Time::now();
-  
-  doPID(&leftPID);
-  doPID(&rightPID);
-  //int resultleft,resultright;
-  /* Set the motor speeds accordingly */
-  // if(motor_mode_ == 0){  //rev:0  stop:128 fwd:255
-  //     resultleft = 128+(127 * leftPID.output);
-  //     resultright = 128+(127 * rightPID.output);
-  // }
-  // if(motor_mode_ == 1){ //rev:-128 stop:0 fwd:127
-  //     resultleft = (127 * leftPID.output);
-  //     resultright = (127 * rightPID.output);
-  // }
   motor->writeSpeed(leftPID.output, rightPID.output);
   if(debug_mode_){
     ROS_INFO("updatePID:  PIDL:%ld PIDR:%ld - EL:%ld ER:%ld, Ticks L:%d R:%d", leftPID.output,rightPID.output,leftPID.PrevErr,rightPID.PrevErr,ticks_l,ticks_r);
@@ -526,11 +490,11 @@ double MPStoMotorSpeed(double ms){
   return (maxms / 127) * ms;
 }
 //---------------------------------------
-int SpeedToTicks(double v) {
+double SpeedToTicks(double v) {
   if(v==0.0) return 0.0;
   double ticks = (v * cpr / (pid_frequency_ * PI * wheelDiameter));
   if(isnan(ticks)){return 0.0;}
-  return (int)ticks;
+  return ticks;
 }
 //---------------------------------------
 /* return current time in milliseconds */
