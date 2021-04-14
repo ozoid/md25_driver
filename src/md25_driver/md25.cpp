@@ -135,19 +135,16 @@ bool md25_driver::resetEncoders(){
 std::pair<int, int> md25_driver::readEncoders(){
   uint8_t m_buff[BUF_LEN] = {0};
   bool error = false;
-  lock.lock();
-    m_buff[0] = ENC1;
-     lastReadEncoders = true;
-    if (write(m_fd, m_buff, 1) != 1) {
-      ROS_ERROR("REs: Could not write to i2c");
-      error = true;
-    }
-
-  if (read(m_fd, m_buff, 8) != 8) {
+  m_buff[0] = ENC1;
+  //lock.lock();
+  if (write(m_fd, m_buff, 1) != 1) {
+    ROS_ERROR("REs: Could not write to i2c");
+    error = true;
+  }else if (read(m_fd, m_buff, 8) != 8) {
     ROS_ERROR("REs: Could not read encoder values");
     error = true;  
   }
-  lock.unlock();
+  //lock.unlock();
   if(error){
       return std::make_pair(m_encoder_1_ticks,m_encoder_2_ticks);
   }
@@ -159,6 +156,7 @@ std::pair<int, int> md25_driver::readEncoders(){
   m_encoder_1_ticks = LT;
   if(LD > 1000 || LD < -1000){
     ROS_ERROR("REs: Left encoder Jump > 1000 - %d",LD);
+    
   }
 
   if(RD > 1000 || RD < -1000){
@@ -174,17 +172,17 @@ int md25_driver::readEncoder(int LR){
   int ticks = 0;
   if(LR == ENC1){ticks = m_encoder_1_ticks; }else{ticks = m_encoder_2_ticks;}
   m_buff[0] = LR;
-  lock.lock();
+  //lock.lock();
   if (write(m_fd, m_buff, 1) != 1) {
     ROS_ERROR("RE: Could not write to i2c");
-    lock.unlock();
+    //lock.unlock();
     return ticks;
   } else if (read(m_fd, m_buff, 4) != 4) {
     ROS_ERROR("RE: Could not read encoder values %d ",LR);
-    lock.unlock();
+    //lock.unlock();
     return ticks;
   }
-  lock.unlock();
+  //lock.unlock();
   ticks = (m_buff[0] << 24) + (m_buff[1] << 16) + (m_buff[2] << 8) + m_buff[3];
   return ticks;
 }
@@ -195,13 +193,13 @@ bool md25_driver::writeSpeed(int left,int right){
   m_buff[0] = SPD1;
   m_buff[1] = left;
   m_buff[2] = right;
-  lock.lock();
+  //lock.lock();
   if (write(m_fd, m_buff, 3) != 3) {
     ROS_ERROR("WS: failed to send  speed command!");
-    lock.unlock();
+    //lock.unlock();
     return false;  
   }
-  lock.unlock();
+  //lock.unlock();
   return true;
 }
 //-------------------------------------------------------

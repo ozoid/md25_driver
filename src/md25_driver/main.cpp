@@ -336,13 +336,19 @@ void calculatePose(int dL,int dR,double dt){
 void publishOdom(const ros::TimerEvent &event){
   ros::Time currentTime = ros::Time::now();
   odomInfo.OdomStamp = currentTime;
+  int ticks_l;
+  int ticks_r;
+  std::tie(ticks_l, ticks_r) = motor->readEncoders();
+  leftPID.Encoder = ticks_l;
+  rightPID.Encoder = ticks_r;
+
   int deltaLeft = leftPID.Encoder - odomInfo.LeftEnc;
   int deltaRight = rightPID.Encoder - odomInfo.RightEnc;
-  ros::Duration dt = odomInfo.OdomStamp - odomInfo.PrevOdomStamp;
-  calculatePose(deltaLeft,deltaRight,dt.toSec());
-  odomInfo.PrevOdomStamp = currentTime;
   odomInfo.LeftEnc = leftPID.Encoder;
   odomInfo.RightEnc = rightPID.Encoder;
+  ros::Duration dt = odomInfo.OdomStamp - odomInfo.PrevOdomStamp;
+  odomInfo.PrevOdomStamp = currentTime;
+  calculatePose(deltaLeft,deltaRight,dt.toSec());
 
   geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(pose.theta);
 
@@ -463,21 +469,21 @@ bool resetAll(){
 //---------------------------------------------------------------
 /* Read the encoder values and call the PID routine */
 void UpdatePID(const ros::TimerEvent &event) {
-  int ticks_l;
-  int ticks_r;
-  std::tie(ticks_l, ticks_r) = motor->readEncoders();
-  leftPID.Encoder = ticks_l;
-  rightPID.Encoder = ticks_r;
+  // int ticks_l;
+  // int ticks_r;
+  // std::tie(ticks_l, ticks_r) = motor->readEncoders();
+  // leftPID.Encoder = ticks_l;
+  // rightPID.Encoder = ticks_r;
+  
   doPID(&leftPID);
   doPID(&rightPID);
   if (!moving){
     if (leftPID.PrevInput != 0 || rightPID.PrevInput != 0) clearPID();
     return;
   }
-  
   motor->writeSpeed(leftPID.output, rightPID.output);
   if(debug_mode_){
-    ROS_INFO("updatePID:  PIDL:%ld PIDR:%ld - EL:%ld ER:%ld, Ticks L:%d R:%d", leftPID.output,rightPID.output,leftPID.PrevErr,rightPID.PrevErr,ticks_l,ticks_r);
+    ROS_INFO("updatePID:  PIDL:%ld PIDR:%ld - EL:%ld ER:%ld", leftPID.output,rightPID.output,leftPID.PrevErr,rightPID.PrevErr);
   }
 }
 //---------------------------------------
